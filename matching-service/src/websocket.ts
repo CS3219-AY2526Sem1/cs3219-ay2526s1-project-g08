@@ -30,7 +30,10 @@ export function startWebSocketServer(port: number) {
 
         const match = await findMatch(user);
         if (match) {
+          console.log(`Match found: ${match.id} for users ${match.users.join(", ")}`);
           await redis.publish("match_found", JSON.stringify(match));
+        } else {
+          console.log(`No match found for user ${user.id}`);
         }
       }
     });
