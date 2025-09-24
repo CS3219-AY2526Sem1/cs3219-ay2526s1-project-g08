@@ -2,37 +2,36 @@ import { getQueueUsers, leaveQueue } from "./queue";
 import { Match, User } from "./types";
 import { redis } from "./redis";
 
-export async function findMatch(): Promise<Match | null> {
-  const users = await getQueueUsers();
-  if (users.length < 2) return null;
+// Find a match for the given user based on difficulty, language, and topics
+export async function findMatch(user: User): Promise<Match | undefined> {
+  const users = await getQueueUsers(user.difficulty, user.language);
 
-  for (let i = 0; i < users.length; i++) {
-    const u1 = users[i];
-    for (let j = i + 1; j < users.length; j++) {
-      const u2 = users[j];
+  if (users.length < 2) return undefined;
 
-      // simple match condition: same difficulty & language & intersecting topics
-      if (
-        u1.difficulty === u2.difficulty &&
-        u1.language === u2.language &&
-        u1.topics.some((t) => u2.topics.includes(t))
-      ) {
-        // remove matched users from queue
-        await leaveQueue(u1.id);
-        await leaveQueue(u2.id);
+  for (const u of users) {
+    if (u.id === user.id) continue;
 
-        const matchId = `match:${Date.now()}`;
-        const match: Match = { id: matchId, users: [u1.id, u2.id], status: "pending" };
-        await redis.hset(matchId, {
-          users: JSON.stringify(match.users),
-          status: match.status,
-        });
-        await redis.expire(matchId, 15); // 15s TTL
-        await redis.publish("match_found", JSON.stringify(match));
+    if (u.topics.some((t) => user.topics.includes(t))) {
+      await leaveQueue(user.id);
+      await leaveQueue(u.id);
 
-        return match;
-      }
+      const matchId = `match:${Date.now()}`;
+      const match: Match = {
+        id: matchId,
+        users: [user.id, u.id],
+        status: "pending",
+      };
+
+      await redis.hset(matchId, {
+        users: JSON.stringify(match.users),
+        status: match.status,
+      });
+      await redis.expire(matchId, 15);
+      await redis.publish("match_found", JSON.stringify(match));
+
+      return match;
     }
   }
-  return null;
+
+  return undefined;
 }

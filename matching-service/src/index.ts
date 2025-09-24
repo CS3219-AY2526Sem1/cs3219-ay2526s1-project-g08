@@ -1,15 +1,10 @@
-import redis from "./redis";
-import { wsServer } from "./websocket";
+// index.ts
+import { startWebSocketServer } from "./websocket";
+import { setupRedisSubscriber } from "./redis";
 
-redis.subscribe("match_found", (err, count) => {
-    if (err) console.error("Subscribe error:", err);
-});
+async function main() {
+  setupRedisSubscriber();
+  startWebSocketServer(8080);
+}
 
-redis.on("message", (channel, message) => {
-    if (channel === "match_found") {
-        const match = JSON.parse(message);
-        console.log("Match found:", match);
-    }
-});
-
-console.log("WebSocket server running on ws://localhost:8080");
+main();

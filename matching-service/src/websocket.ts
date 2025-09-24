@@ -2,36 +2,44 @@ import WebSocket from "ws";
 import { joinQueue } from "./queue";
 import { findMatch } from "./matchmaking";
 import { User } from "./types";
+import { redis } from "./redis";
+import { activeConnections } from "./connections";
 
-const wss = new WebSocket.Server({ port: 8080 });
+export function startWebSocketServer(port: number) {
+  const wss = new WebSocket.Server({ port });
+  console.log(`WebSocket server running on ws://localhost:${port}`);
 
-export const wsServer = wss;
+  wss.on("connection", (ws) => {
+    console.log("Client connected");
 
-wss.on("connection", (ws) => {
-  console.log("Client connected");
+    ws.on("message", async (msg) => {
+      const data = JSON.parse(msg.toString());
+      if (data.action === "join_queue") {
+        const user: User = {
+          id: data.id,
+          difficulty: data.difficulty,
+          language: data.language,
+          topics: data.topics,
+          joinTime: Date.now(),
+          ws,
+        };
 
-  ws.on("message", async (msg) => {
-    const data = JSON.parse(msg.toString());
-    if (data.action === "join") {
-      const user: User = {
-        id: data.id,
-        difficulty: data.difficulty,
-        language: data.language,
-        topics: data.topics,
-        joinedAt: Date.now(),
-        ws,
-      };
-      await joinQueue(user);
-      console.log(`User ${user.id} joined queue`);
+        activeConnections.set(user.id, ws);
+        await joinQueue(user);
+        console.log(`User ${user.id} joined queue`);
 
-      const match = await findMatch();
-      if (match) {
-        match.users.forEach((u) => {
-          if (u === user.id) ws.send(JSON.stringify({ event: "match_found", match }));
-        });
+        const match = await findMatch(user);
+        if (match) {
+          await redis.publish("match_found", JSON.stringify(match));
+        }
       }
-    }
-  });
+    });
 
-  ws.on("close", () => console.log("Client disconnected"));
-});
+    ws.on("close", () => {
+      console.log("Client disconnected");
+      activeConnections.forEach((connection, userId) => {
+        if (connection === ws) activeConnections.delete(userId);
+      });
+    });
+  });
+}

@@ -1,14 +1,16 @@
+import { WebSocket } from "ws";
+
 export interface User {
   id: string;
   difficulty: string;
   language: string;
   topics: string[];
-  joinedAt: number;
-  ws?: any; // WebSocket reference
+  joinTime: number;
+  ws?: WebSocket;
 }
 
 export interface Match {
   id: string;
   users: string[];
-  status: "pending" | "confirmed" | "declined";
+  status: "pending" | "accepted" | "declined";
 }
