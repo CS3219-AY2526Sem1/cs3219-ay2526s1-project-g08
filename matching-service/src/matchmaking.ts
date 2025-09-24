@@ -27,7 +27,6 @@ export async function findMatch(user: User): Promise<Match | undefined> {
         status: match.status,
       });
       await redis.expire(matchId, 15);
-      await redis.publish("match_found", JSON.stringify(match));
 
       return match;
     }
