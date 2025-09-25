@@ -21,7 +21,11 @@ export default function Layout() {
     { path: "/profile", label: "Profile", icon: <TbUser /> },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await fetch("http://localhost:3002/auth/logout", {
+      method: "POST",
+      credentials: "include", // to send cookies
+    });
     navigate("/");
   };
 

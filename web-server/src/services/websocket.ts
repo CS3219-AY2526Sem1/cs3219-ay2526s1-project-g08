@@ -6,7 +6,7 @@ export const connectWebSocket = (
   onMessage: (msg: WebSocketMessage) => void
 ) => {
   return new Promise<void>((resolve) => {
-    ws = new WebSocket("ws://localhost:8080");
+    ws = new WebSocket("ws://localhost:3001");
 
     ws.onopen = () => resolve();
     ws.onmessage = (event) => {
