@@ -2,6 +2,7 @@ const express = require('express');
 const Joi = require('joi');
 const sessionService = require('../services/sessionService');
 const { authenticateToken } = require('../middleware/auth');
+const config = require('../config');
 
 const router = express.Router();
 
@@ -49,6 +50,7 @@ router.post('/sessions', authenticateToken, async (req, res) => {
       success: true,
       data: {
         sessionId: session.sessionId,
+        socketUrl: `ws://localhost:${config.server.port}`,
         createdAt: session.createdAt
       }
     });
