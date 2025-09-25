@@ -8,8 +8,6 @@ export interface User {
 export async function getUserById(userId: string): Promise<User | null> {
   try {
     const db = getDatabase();
-    console.log("Connected to DB:", db.databaseName); // should print "user_service"
-    console.log(userId === "ziiqii"); // should print true
     const Users = db.collection<User>("users");
     const user = await Users.findOne({ userId });
     if (!user) {

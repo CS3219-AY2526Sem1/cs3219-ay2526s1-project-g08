@@ -60,7 +60,7 @@ router.get("/callback", async (req, res) => {
 
     res.cookie("token", jwtToken, {
       httpOnly: true,
-      secure: false, // we are just http
+      secure: false, // might be https in production
       sameSite: "lax",
       maxAge: 1000 * 60 * 60 * 24, // 1 day
     });
