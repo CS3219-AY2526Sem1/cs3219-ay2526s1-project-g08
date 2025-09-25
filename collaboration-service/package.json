@@ -1,0 +1,28 @@
+{
+  "name": "collaboration-service",
+  "version": "1.0.0",
+  "description": "PeerPrep collaboration service",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "g08",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "mongoose": "^8.0.0",
+    "uuid": "^9.0.0",
+    "joi": "^17.9.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.0.0",
+    "dotenv": "^16.3.1",
+    "winston": "^3.10.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "jest": "^29.6.1",
+    "supertest": "^6.3.3",
+    "nodemon": "^3.0.1"
+  }
+}
