@@ -88,7 +88,7 @@ class SocketServer {
           connectedUsers: session.connectedUsers.map(u => u.userId),
         });
         
-        // Send current session state to newly connected user
+        // Send current session state to newly connected or reconnected user
         socket.emit('session_state', {
           sessionId: socket.sessionId,
           questionId: session.questionId,
@@ -114,23 +114,31 @@ class SocketServer {
     socket.on('disconnect', async (reason) => {
       logger.info(`User disconnected: ${socket.userId}, reason: ${reason}`);
       
-      try {
-        const session = await sessionService.leaveSession(socket.sessionId, socket.userId);
-        
-        // Notify other participants in the room
-        if (session) {
-          socket.to(socket.sessionId).emit('user_left', {
-            userId: socket.userId,
-            connectedUsers: session.connectedUsers.map(u => u.userId)
-          });
+      if (socket.active) {
+        // temporary disconnection, the socket will automatically try to reconnect
+        socket.to(socket.sessionId).emit('user_lost_connection', {
+          userId: socket.userId,
+        });
+      } else {
+        // socket was manually disconnected by client
+        try {
+          const session = await sessionService.leaveSession(socket.sessionId, socket.userId);
           
-          // Check if session was auto-terminated
-          if (session.status === 'terminated') {
-            logger.info(`Session auto-terminated: ${socket.sessionId}`);
+          // Notify other participants in the room
+          if (session) {
+            socket.to(socket.sessionId).emit('user_left', {
+              userId: socket.userId,
+              connectedUsers: session.connectedUsers.map(u => u.userId)
+            });
+            
+            // Check if session was auto-terminated
+            if (session.status === 'terminated') {
+              logger.info(`Session auto-terminated: ${socket.sessionId}`);
+            }
           }
+        } catch (err) {
+          logger.error(`Disconnect cleanup failed for user ${socket.userId}:`, err);
         }
-      } catch (err) {
-        logger.error(`Disconnect cleanup failed for user ${socket.userId}:`, err);
       }
     });
 
