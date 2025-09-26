@@ -149,4 +149,4 @@ class SocketServer {
   }
 }
 
-export default SocketServer;
+module.exports = SocketServer;

@@ -4,7 +4,12 @@
   "description": "PeerPrep collaboration service",
   "main": "src/server.js",
   "scripts": {
-    "test": "jest"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest",
+    "docker:up": "docker-compose up --build",
+    "docker:down": "docker-compose down -v",
+    "docker:logs": "docker-compose logs -f app"
   },
   "author": "g08",
   "license": "ISC",
