@@ -1,21 +1,19 @@
-import { useState } from "react";
-import {
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Card,
-  CardContent,
-} from "@mui/material";
+import { useState, useEffect } from "react";
+import { Box, Typography, Card, CardContent } from "@mui/material";
 
 export default function Profile() {
-  const [displayName, setDisplayName] = useState("John Doe");
-  const [githubUsername] = useState("johndoe");
+  const [userId, setUserId] = useState("");
+  const [name, setName] = useState("");
 
-  const handleSave = () => {
-    // Save profile logic here
-    alert("Profile saved!");
-  };
+  useEffect(() => {
+    fetch("http://localhost:3002/user/profile", { credentials: 'include' })
+      .then((res) => res.json())
+      .then((data) => {
+        setUserId(data.userId);
+        setName(data.name);
+      })
+      .catch((err) => console.error("Error fetching user:", err));
+  }, []);
 
   return (
     <Box sx={{ p: 3, maxWidth: 600 }}>
@@ -25,24 +23,16 @@ export default function Profile() {
 
       <Card>
         <CardContent>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            <TextField
-              label="GitHub Username"
-              value={githubUsername}
-              fullWidth
-              InputProps={{ readOnly: true }}
-            />
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Box>
+              <Typography variant="subtitle2">User ID</Typography>
+              <Typography variant="body1">{userId || "Loading..."}</Typography>
+            </Box>
 
-            <TextField
-              label="Display Name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              fullWidth
-            />
-
-            <Button variant="contained" onClick={handleSave}>
-              Save Profile
-            </Button>
+            <Box>
+              <Typography variant="subtitle2">Display Name</Typography>
+              <Typography variant="body1">{name || "Loading..."}</Typography>
+            </Box>
           </Box>
         </CardContent>
       </Card>

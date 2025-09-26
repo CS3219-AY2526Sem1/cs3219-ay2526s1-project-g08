@@ -1,11 +1,8 @@
 import { Box, Button, Typography, Container } from "@mui/material";
-import { useNavigate } from "react-router-dom";
 
 export default function Landing() {
-  const navigate = useNavigate();
-
   const handleLogin = () => {
-    navigate("/home");
+    window.location.href = "http://localhost:3002/auth/github";
   };
 
   return (
