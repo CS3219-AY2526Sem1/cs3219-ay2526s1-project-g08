@@ -48,6 +48,17 @@ const sessionSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+
+  // Track code changes for version control
+  codeVersion: {
+    type: Number,
+    default: 0
+  },
+  lastCodeUpdate: {
+    userId: String,
+    timestamp: Date
+  },
+
   // Metadata
   terminationReason: String
 }, {
@@ -77,9 +88,13 @@ sessionSchema.methods.removeUser = function(userId) {
   return this;
 };
 
-sessionSchema.methods.updateCode = function(code) {
+sessionSchema.methods.updateCode = function(code, userId) {
   this.currentCode = code;
-  this.updatedAt = new Date();
+  this.codeVersion += 1;
+  this.lastCodeUpdate = {
+    userId,
+    timestamp: new Date()
+  };
   return this;
 };
 

@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const logger = require('../utils/logger');
 const sessionService = require('../services/sessionService');
+const codeSyncService = require('../services/codeSyncService');
 
 class SocketServer {
   constructor(httpServer) {
@@ -86,17 +87,16 @@ class SocketServer {
         socket.to(socket.sessionId).emit('user_joined', {
           userId: socket.userId,
           connectedUsers: session.connectedUsers.map(u => u.userId),
+          timestamp: Date.now(),
         });
         
         // Send current session state to newly connected or reconnected user
         socket.emit('session_state', {
           sessionId: socket.sessionId,
-          questionId: session.questionId,
-          difficulty: session.difficulty,
-          topic: session.topic,
-          language: session.language,
           currentCode: session.currentCode,
           connectedUsers: session.connectedUsers.map(u => u.userId),
+          codeVersion: session.codeVersion,
+          lastCodeUpdate: session.lastCodeUpdate
         });
         
         this.setupUserEventHandlers(socket);
@@ -128,7 +128,8 @@ class SocketServer {
           if (session) {
             socket.to(socket.sessionId).emit('user_left', {
               userId: socket.userId,
-              connectedUsers: session.connectedUsers.map(u => u.userId)
+              connectedUsers: session.connectedUsers.map(u => u.userId),
+              timestamp: Date.now()
             });
             
             // Check if session was auto-terminated
@@ -139,6 +140,48 @@ class SocketServer {
         } catch (err) {
           logger.error(`Disconnect cleanup failed for user ${socket.userId}:`, err);
         }
+      }
+    });
+
+    socket.on('code_update', async (data) => {
+      try {
+        const { code } = data;
+        
+        // Validate code data
+        if (typeof code !== 'string') {
+          socket.emit('error', { message: 'Invalid code data' });
+          return;
+        }
+
+        // Update code in database
+        const result = await codeSyncService.updateCode(
+          socket.sessionId,
+          code,
+          socket.userId
+        );
+
+        // Broadcast to other users in the session (not including sender)
+        socket.to(socket.sessionId).emit('code_changed', {
+          code: result.code,
+          version: result.version,
+          userId: socket.userId,
+          timestamp: result.timestamp
+        });
+
+        // Acknowledge to sender
+        socket.emit('code_update_ack', {
+          version: result.version,
+          timestamp: result.timestamp
+        });
+
+        logger.debug(`Code update broadcasted in session ${socket.sessionId}`);
+
+      } catch (error) {
+        logger.error('Code update error:', error);
+        socket.emit('error', { 
+          message: 'Failed to update code',
+          details: error.message 
+        });
       }
     });
 

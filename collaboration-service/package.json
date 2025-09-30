@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest",
+    "test": "jest --detectOpenHandles",
     "docker:up": "docker-compose up --build",
     "docker:down": "docker-compose down -v",
     "docker:logs": "docker-compose logs -f app"
@@ -28,6 +28,7 @@
   "devDependencies": {
     "jest": "^29.6.1",
     "supertest": "^6.3.3",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "socket.io-client": "^4.7.2"
   }
 }
