@@ -1,0 +1,29 @@
+services:
+  backend:
+    build: .
+    container_name: peerprep-collab
+    ports:
+      - "8080:8080"    # API and WebSocket port
+    volumes:
+      - .:/app         # Mount source code for hot reload
+      - /app/node_modules  # Don't overwrite node_modules
+    environment:
+      - NODE_ENV=development
+      - MONGODB_URI=mongodb://mongodb:27017/peerprep_dev
+      - JWT_SECRET=${JWT_SECRET} # Use environment variable for JWT secret
+      - LOG_LEVEL=debug
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo
+    container_name: peerprep-collab-mongodb
+    ports:
+      - "27017:27017"  # Expose MongoDB port
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
