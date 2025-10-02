@@ -93,9 +93,9 @@ class SocketServer {
         // Send current session state to newly connected or reconnected user
         socket.emit('session_state', {
           sessionId: socket.sessionId,
-          currentCode: session.currentCode,
+          code: session.currentCode,
           connectedUsers: session.connectedUsers.map(u => u.userId),
-          codeVersion: session.codeVersion,
+          version: session.codeVersion,
           lastCodeUpdate: session.lastCodeUpdate
         });
         

@@ -95,7 +95,7 @@ router.get('/sessions/:sessionId', authenticateToken, async (req, res) => {
         difficulty: session.difficulty,
         topic: session.topic,
         language: session.language,
-        currentCode: session.currentCode,
+        code: session.currentCode,
         connectedUsers: session.connectedUsers.map(u => u.userId),
       }
     });
@@ -163,7 +163,7 @@ router.get('/user/session', authenticateToken, async (req, res) => {
         difficulty: session.difficulty,
         topic: session.topic,
         language: session.language,
-        currentCode: session.currentCode,
+        code: session.currentCode,
         connectedUsers: session.connectedUsers.map(u => u.userId),
       } : null
     });

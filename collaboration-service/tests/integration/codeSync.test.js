@@ -102,8 +102,8 @@ describe('Code Synchronization', () => {
 
     client1.on('session_state', (data) => {
       expect(data.sessionId).toBe('test-sync-session');
-      expect(data.currentCode).toBe('');
-      expect(data.codeVersion).toBe(0);
+      expect(data.code).toBe('');
+      expect(data.version).toBe(0);
       done();
     });
   });
