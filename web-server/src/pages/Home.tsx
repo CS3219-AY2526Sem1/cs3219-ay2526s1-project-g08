@@ -15,10 +15,20 @@ export default function Home() {
   const [userId, setUserId] = useState("user123");
   const [difficulty, setDifficulty] = useState("easy");
   const [language, setLanguage] = useState("python");
+  const [isFindingUser, setIsFindingUser] = useState(false); 
 
   const { match, findMatch } = useMatchmaking(userId, difficulty, language, [
     "arrays",
   ]);
+
+  const handleFindMatch = async () => {
+    setIsFindingUser(true); //disables find match button
+    try{
+      await findMatch(); 
+    } finally {
+      setIsFindingUser(false); //button re-enabled later
+    }
+  };
 
   return (
     <Box sx={{ p: 3, maxWidth: 400 }}>
@@ -60,7 +70,10 @@ export default function Home() {
         </Select>
       </FormControl>
 
-      <Button variant="contained" onClick={findMatch}>
+      <Button 
+        variant="contained" 
+        onClick={handleFindMatch}
+        disabled={isFindingUser}>
         Find Match
       </Button>
 
