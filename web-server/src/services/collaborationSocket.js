@@ -76,7 +76,9 @@ class CollaborationSocket {
 
     // Handle acknowledgments
     this.socket.on('code_update_ack', (data) => {
+      console.log('Code update acknowledged');
       this.currentVersion = data.version;
+      this.emit('code_update_ack', data);
     });
   }
 

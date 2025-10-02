@@ -3,12 +3,14 @@ import Editor from '@monaco-editor/react';
 import collaborationSocket from '../services/collaborationSocket';
 import './CollaborativeEditor.css';
 
-function CollaborativeEditor({ sessionId, authToken, currentUserId, language }) {
+function CollaborativeEditor({ sessionId, authToken, language }) {
   const [code, setCode] = useState('');
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [version, setVersion] = useState(0);
   const editorRef = useRef(null);
   const isRemoteChange = useRef(false);
+  const debounceTimeoutRef = useRef(null); // need to persist across re-renders
 
   useEffect(() => {
     // Connect to collaboration session
@@ -27,7 +29,7 @@ function CollaborativeEditor({ sessionId, authToken, currentUserId, language }) 
     collaborationSocket.on('code_changed', handleCodeChanged);
     collaborationSocket.on('user_joined', handleUserJoined);
     collaborationSocket.on('user_left', handleUserLeft);
-    collaborationSocket.on('user_lost_connection', handleUserLostConnection);
+    collaborationSocket.on('code_update_ack', handleCodeUpdateAck);
   }, [sessionId, authToken]);
 
   const handleSessionState = (data) => {
@@ -35,12 +37,14 @@ function CollaborativeEditor({ sessionId, authToken, currentUserId, language }) 
     isRemoteChange.current = true;
     setCode(data.code);
     setConnectedUsers(data.connectedUsers);
+    setVersion(data.version);
   };
 
   const handleCodeChanged = (data) => {
     console.log('Code changed by another user');
     isRemoteChange.current = true;
     setCode(data.code);
+    setVersion(data.version);
   };
 
   const handleUserJoined = (data) => {
@@ -53,8 +57,9 @@ function CollaborativeEditor({ sessionId, authToken, currentUserId, language }) 
     setConnectedUsers(data.connectedUsers);
   };
 
-  const handleUserLostConnection = (data) => {
-    console.log('User lost connection:', data.userId);
+  const handleCodeUpdateAck = (data) => {
+    console.log('Code update acknowledged');
+    setVersion(data.version);
   };
 
   const handleEditorChange = (value) => {
@@ -68,12 +73,13 @@ function CollaborativeEditor({ sessionId, authToken, currentUserId, language }) 
     
     // Debounce code updates to avoid flooding the server
     // Updates are sent only after the user pauses typing for 500ms
-    if (handleEditorChange.timeout) {
-      // Reset pending timeout from previous keystroke
-      clearTimeout(handleEditorChange.timeout);
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
     }
-    handleEditorChange.timeout = setTimeout(() => {
+    
+    debounceTimeoutRef.current = setTimeout(() => {
       collaborationSocket.updateCode(value);
+      debounceTimeoutRef.current = null;
     }, 500);
   };
 
@@ -128,7 +134,7 @@ function CollaborativeEditor({ sessionId, authToken, currentUserId, language }) 
 
       <div className="editor-footer">
         <span className="version-info">
-          Version: {collaborationSocket.getState().currentVersion}
+          Version: {version}
         </span>
       </div>
     </div>
