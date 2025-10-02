@@ -8,6 +8,8 @@ import {
   MenuItem,
   Button,
   TextField,
+  Alert,
+  Stack
 } from "@mui/material";
 import { useMatchmaking } from "../hooks/useMatchmaking";
 
@@ -15,19 +17,13 @@ export default function Home() {
   const [userId, setUserId] = useState("user123");
   const [difficulty, setDifficulty] = useState("easy");
   const [language, setLanguage] = useState("python");
-  const [isFindingUser, setIsFindingUser] = useState(false); 
 
-  const { match, findMatch } = useMatchmaking(userId, difficulty, language, [
+  const { match, findMatch, isFinding, timeProgress, error, resetMatch } = useMatchmaking(userId, difficulty, language, [
     "arrays",
-  ]);
+  ], 60);
 
   const handleFindMatch = async () => {
-    setIsFindingUser(true); //disables find match button
-    try{
       await findMatch(); 
-    } finally {
-      setIsFindingUser(false); //button re-enabled later
-    }
   };
 
   return (
@@ -70,18 +66,39 @@ export default function Home() {
         </Select>
       </FormControl>
 
-      <Button 
-        variant="contained" 
-        onClick={handleFindMatch}
-        disabled={isFindingUser}>
-        Find Match
-      </Button>
+      <Stack direction="row" spacing={2}>
+        <Button 
+          variant="contained" 
+          onClick={handleFindMatch}
+          disabled={isFinding || !!match}>
+            
+          {match 
+            ? "Matched!"
+            : isFinding
+            ? 'Finding (${timeProgress}s)'
+            : "Find Match"}
+        </Button>
+
+        { (match || error) && (
+          <Button variant='outlined' onClick={resetMatch}>
+            Find Again
+          </Button>
+        )}
+      </Stack>
 
       {match && (
-        <Typography sx={{ mt: 2 }} color="primary">
-          Match found! Users: {match.users.join(", ")}
+        <Alert severity="success">
+          Match Found! Users: {match.users.join(", ")}
+        </Alert>
+      )}
+
+      {isFinding && !match && (
+        <Typography variant="body2" color="text.secondary">
+          Searching for peer... progressed {timeProgress}s 
         </Typography>
       )}
+
+      {error && <Alert severity="error">{error}</Alert>}
     </Box>
   );
 }
