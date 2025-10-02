@@ -6,7 +6,7 @@ import questionRoutes from "./routes/questionRoutes";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8002;
+const PORT = process.env.PORT || 3003;
 
 // Middleware
 app.use(express.json());
