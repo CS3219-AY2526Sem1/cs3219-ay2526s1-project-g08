@@ -15,6 +15,7 @@ app.use(express.json());
 app.get("/", (_req, res) => {
   res.send("Question Service is running!");
 });
+
 app.use("/api/questions", questionRoutes);
 
 // DB + server start
