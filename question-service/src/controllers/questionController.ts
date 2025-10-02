@@ -18,7 +18,7 @@ router.post("/addquestion", async (req: Request, res: Response) => {
 });
 
 // Get all the questions by providing a way to filter questions based on topic and difficulty
-router.get("/", async (req: Request, res: Response) => {
+router.get("/getquestion", async (req: Request, res: Response) => {
   try {
     const { topic, difficulty } = req.query;
     const query: any = {};
