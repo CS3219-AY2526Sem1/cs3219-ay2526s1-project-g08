@@ -9,7 +9,7 @@ export interface IQuestion extends Document {
 }
 
 const questionSchema = new Schema<IQuestion>({
-  title: { type: String, required: true },
+  title: { type: String, required: true, unique: true },
   description: { type: String, required: true },
   difficulty: { type: String, enum: ["easy", "medium", "hard"], required: true },
   topics: { type: [String], default: [] },
