@@ -22,10 +22,25 @@ export default function Layout() {
   ];
 
   const handleLogout = async () => {
-    await fetch("http://localhost:3002/auth/logout", {
-      method: "POST",
-      credentials: "include", // to send cookies
-    });
+    // Clean up WebSocket connection if it exists
+    const ws = window.matchmakingWS;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      // Just close the connection - backend handles queue cleanup
+      ws.close();
+      delete window.matchmakingWS;
+    }
+
+    // Call backend logout
+    try {
+      await fetch("http://localhost:3002/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    }
+
+    // Always navigate to landing page
     navigate("/");
   };
 
