@@ -1,7 +1,7 @@
 services:
-  backend:
+  collaboration-service:
     build: .
-    container_name: peerprep-collab
+    container_name: collaboration-service
     ports:
       - "8080:8080"    # API and WebSocket port
     volumes:
@@ -9,21 +9,30 @@ services:
       - /app/node_modules  # Don't overwrite node_modules
     environment:
       - NODE_ENV=development
-      - MONGODB_URI=mongodb://mongodb:27017/peerprep_dev
+      - MONGODB_URI=mongodb://mongo:27017/collab
       - JWT_SECRET=${JWT_SECRET} # Use environment variable for JWT secret
       - LOG_LEVEL=debug
     depends_on:
-      - mongodb
+      - mongo
     restart: unless-stopped
-
-  mongodb:
-    image: mongo
-    container_name: peerprep-collab-mongodb
+  
+  mongo:
+    image: mongo:8
+    container_name: mongo
     ports:
-      - "27017:27017"  # Expose MongoDB port
+      - "27017:27017"
     volumes:
-      - mongo_data:/data/db
-    restart: unless-stopped
+      - mongo-data:/data/db
+  
+  mongo-express:
+    image: mongo-express:1.0.2-20-alpine3.19
+    container_name: mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+    depends_on:
+      - mongo
 
 volumes:
-  mongo_data:
+  mongo-data:

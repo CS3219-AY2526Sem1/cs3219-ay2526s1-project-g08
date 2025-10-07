@@ -35,11 +35,7 @@ const sessionSchema = new mongoose.Schema({
     default: 'active',
     index: true
   },
-  // Current session state
-  currentCode: {
-    type: String,
-    default: ''
-  },
+
   // Connected users (live data)
   connectedUsers: [{
     userId: String,
@@ -49,16 +45,18 @@ const sessionSchema = new mongoose.Schema({
     }
   }],
 
-  // Track code changes for version control
-  codeVersion: {
+  // CRDT document state (stored as binary)
+  yjsState: {
+    type: Buffer,
+    default: null
+  },
+
+  // Track document version for debugging
+  yjsVersion: {
     type: Number,
     default: 0
   },
-  lastCodeUpdate: {
-    userId: String,
-    timestamp: Date
-  },
-
+  
   // Metadata
   terminationReason: String
 }, {
@@ -88,13 +86,9 @@ sessionSchema.methods.removeUser = function(userId) {
   return this;
 };
 
-sessionSchema.methods.updateCode = function(code, userId) {
-  this.currentCode = code;
-  this.codeVersion += 1;
-  this.lastCodeUpdate = {
-    userId,
-    timestamp: new Date()
-  };
+sessionSchema.methods.updateYjsState = function(stateUpdate) {
+  this.yjsState = stateUpdate;
+  this.yjsVersion += 1;
   return this;
 };
 

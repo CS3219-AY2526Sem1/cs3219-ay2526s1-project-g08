@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const config = require('../config');
 const logger = require('../utils/logger');
 const sessionService = require('../services/sessionService');
-const codeSyncService = require('../services/codeSyncService');
+const yjsDocumentManager = require('../services/yjsDocumentManager');
 
 class SocketServer {
   constructor(httpServer) {
@@ -17,7 +17,7 @@ class SocketServer {
       // 'polling' is a fallback for environments where WebSocket is not supported
       transports: ['websocket', 'polling']
     });
-    
+
     this.setupMiddleware();
     this.setupEventHandlers();
 
@@ -83,24 +83,26 @@ class SocketServer {
         // an arbitrary channel that sockets can join and leave
         await socket.join(socket.sessionId);
         
+        // Ensure Yjs document is loaded in memory
+        await yjsDocumentManager.getDocument(socket.sessionId);
+        
         // Notify other participants in the room
         socket.to(socket.sessionId).emit('user_joined', {
           userId: socket.userId,
           connectedUsers: session.connectedUsers.map(u => u.userId),
           timestamp: Date.now(),
         });
-        
+
         // Send current session state to newly connected or reconnected user
         socket.emit('session_state', {
           sessionId: socket.sessionId,
-          code: session.currentCode,
           connectedUsers: session.connectedUsers.map(u => u.userId),
-          version: session.codeVersion,
-          lastCodeUpdate: session.lastCodeUpdate
         });
         
         this.setupUserEventHandlers(socket);
+        this.setupYjsHandlers(socket);     
         
+        logger.info(`User ${socket.userId} fully connected with Yjs`);
       } catch (err) {
         logger.error(`Connection setup failed for user ${socket.userId}:`, err);
         socket.emit('error', { message: err.message });
@@ -134,6 +136,7 @@ class SocketServer {
             
             // Check if session was auto-terminated
             if (session.status === 'terminated') {
+              await yjsDocumentManager.cleanupDocument(socket.sessionId);
               logger.info(`Session auto-terminated: ${socket.sessionId}`);
             }
           }
@@ -143,51 +146,60 @@ class SocketServer {
       }
     });
 
-    socket.on('code_update', async (data) => {
-      try {
-        const { code } = data;
-        
-        // Validate code data
-        if (typeof code !== 'string') {
-          socket.emit('error', { message: 'Invalid code data' });
-          return;
-        }
-
-        // Update code in database
-        const result = await codeSyncService.updateCode(
-          socket.sessionId,
-          code,
-          socket.userId
-        );
-
-        // Broadcast to other users in the session (not including sender)
-        socket.to(socket.sessionId).emit('code_changed', {
-          code: result.code,
-          version: result.version,
-          userId: socket.userId,
-          timestamp: result.timestamp
-        });
-
-        // Acknowledge to sender
-        socket.emit('code_update_ack', {
-          version: result.version,
-          timestamp: result.timestamp
-        });
-
-        logger.debug(`Code update broadcasted in session ${socket.sessionId}`);
-
-      } catch (error) {
-        logger.error('Code update error:', error);
-        socket.emit('error', { 
-          message: 'Failed to update code',
-          details: error.message 
-        });
-      }
-    });
-
     // Basic ping/pong for connection health
     socket.on('ping', () => {
       socket.emit('pong', { timestamp: Date.now() });
+    });
+  }
+
+  setupYjsHandlers(socket) {
+    // Handle sync request from client (initial connection)
+    socket.on('yjs-sync-request', async (data) => {
+      try {
+        const { stateVector } = data;
+        const { sessionId } = socket;
+
+        // Get state as update
+        const update = await yjsDocumentManager.getStateAsUpdate(
+          sessionId,
+          stateVector ? Array.from(stateVector) : null
+        );
+
+        // Send sync response
+        socket.emit('yjs-sync-response', {
+          update: Array.from(update)
+        });
+
+        logger.debug(`Sent Yjs sync to user ${socket.userId} in session ${sessionId}`);
+      } catch (error) {
+        logger.error('Yjs sync error:', error);
+        socket.emit('error', { message: 'Failed to sync document' });
+      }
+    });
+
+
+    // Handle Yjs updates from clients
+    socket.on('yjs-update', async (data) => {
+      try {
+        const { sessionId, userId } = socket;
+        const update = new Uint8Array(data.update);
+
+        // Apply update to document
+        const success = await yjsDocumentManager.applyUpdate(sessionId, update);
+
+        if (success) {
+          // Broadcast update to other user in session
+          socket.to(sessionId).emit('yjs-update', {
+            update: update,
+            userId: userId
+          });
+
+          logger.debug(`Broadcasted Yjs update from user ${userId} in session ${sessionId}`);
+        }
+      } catch (error) {
+        logger.error('Yjs update error:', error);
+        socket.emit('error', { message: 'Failed to apply update' });
+      }
     });
   }
 }
