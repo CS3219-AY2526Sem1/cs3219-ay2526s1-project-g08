@@ -1,50 +1,26 @@
 import { useEffect, useState, useRef } from 'react';
 import Editor from '@monaco-editor/react';
-import collaborationSocket from '../services/collaborationSocket';
+import YjsCollaboration from '../services/yjsCollaboration';
 import './CollaborativeEditor.css';
 
 function CollaborativeEditor({ sessionId, authToken, language }) {
-  const [code, setCode] = useState('');
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
-  const [version, setVersion] = useState(0);
   const editorRef = useRef(null);
-  const isRemoteChange = useRef(false);
-  const debounceTimeoutRef = useRef(null); // need to persist across re-renders
+  const yjsCollab = useRef(null);
 
   useEffect(() => {
-    // Connect to collaboration session
-    collaborationSocket.connect(sessionId, authToken)
-      .then(() => {
-        console.log('Connected to collaboration session');
-        setIsConnected(true);
-      })
-      .catch(error => {
-        console.error('Failed to connect:', error);
-        alert('Failed to connect to collaboration session');
-      });
-
-    // Setup event listeners
-    collaborationSocket.on('session_state', handleSessionState);
-    collaborationSocket.on('code_changed', handleCodeChanged);
-    collaborationSocket.on('user_joined', handleUserJoined);
-    collaborationSocket.on('user_left', handleUserLeft);
-    collaborationSocket.on('code_update_ack', handleCodeUpdateAck);
-  }, [sessionId, authToken]);
-
+    return () => {
+      // Cleanup on unmount
+      if (yjsCollab.current) {
+        yjsCollab.current.destroy();
+      }
+    };
+  }, []);
+  
   const handleSessionState = (data) => {
     console.log('Received initial session state');
-    isRemoteChange.current = true;
-    setCode(data.code);
     setConnectedUsers(data.connectedUsers);
-    setVersion(data.version);
-  };
-
-  const handleCodeChanged = (data) => {
-    console.log('Code changed by another user');
-    isRemoteChange.current = true;
-    setCode(data.code);
-    setVersion(data.version);
   };
 
   const handleUserJoined = (data) => {
@@ -57,41 +33,30 @@ function CollaborativeEditor({ sessionId, authToken, language }) {
     setConnectedUsers(data.connectedUsers);
   };
 
-  const handleCodeUpdateAck = (data) => {
-    console.log('Code update acknowledged');
-    setVersion(data.version);
-  };
+  const handleEditorDidMount = (editor, monaco) => {
+    editorRef.current = editor;
 
-  const handleEditorChange = (value) => {
-    // Skip if this is a remote change
-    if (isRemoteChange.current) {
-      isRemoteChange.current = false;
-      return;
-    }
+    // Initialize Yjs collaboration
+    yjsCollab.current = new YjsCollaboration();
+    yjsCollab.current.initialize(sessionId, authToken, editor, monaco);
+    yjsCollab.current.on('session_state', handleSessionState);
+    yjsCollab.current.on('user_joined', handleUserJoined);
+    yjsCollab.current.on('user_left', handleUserLeft);
 
-    setCode(value);
-    
-    // Debounce code updates to avoid flooding the server
-    // Updates are sent only after the user pauses typing for 500ms
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-    
-    debounceTimeoutRef.current = setTimeout(() => {
-      collaborationSocket.updateCode(value);
-      debounceTimeoutRef.current = null;
-    }, 500);
+    // Monitor connection status
+    const statusInterval = setInterval(() => {
+      if (yjsCollab.current) {
+        setIsConnected(yjsCollab.current.isConnected());
+      }
+    }, 1000);
+
+    return () => clearInterval(statusInterval);
   };
 
   const handleLeaveSession = () => {
     if (window.confirm('Are you sure you want to leave this session?')) {
-      collaborationSocket.disconnect();
+      yjsCollab.current.destroy();
     }
-  };
-
-  // Callback that runs when the Monaco editor component has finished mounting.
-  const handleEditorDidMount = (editor, monaco) => {
-    editorRef.current = editor;
   };
 
   return (
@@ -118,25 +83,15 @@ function CollaborativeEditor({ sessionId, authToken, language }) {
       <Editor
         height="800px"
         language={language}
-        value={code}
-        onChange={handleEditorChange}
         onMount={handleEditorDidMount}
         theme="vs-dark"
         options={{
           minimap: { enabled: false },
           fontSize: 14,
           wordWrap: 'on',
-          automaticLayout: true,
-          scrollBeyondLastLine: false,
-          readOnly: false
+          automaticLayout: true
         }}
       />
-
-      <div className="editor-footer">
-        <span className="version-info">
-          Version: {version}
-        </span>
-      </div>
     </div>
   );
 }
