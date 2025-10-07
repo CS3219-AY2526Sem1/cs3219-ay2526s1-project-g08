@@ -6,14 +6,28 @@ const router = express.Router();
 
 
 // Add a question
-router.post("/addquestion", async (req: Request, res: Response) => {
+router.post("/", async (req: Request, res: Response) => {
   try {
     const { title, description, difficulty, topics } = req.body;
     
+    if (!title || typeof title !== "string" || title.trim() === "") {
+      return res.status(400).json({ message: "Title is required and must be a non-empty string" });
+
+    }
+    if (!description || typeof description !== "string" || description.trim() === "") {
+      return res.status(400).json({ message: "Description is required and must be a non-empty string" });
+    }
+
+    if (!["easy", "medium", "hard"].includes(difficulty) || !difficulty) {
+      return res.status(400).json({ message: "Difficulty must be one of 'easy', 'medium', or 'hard'" });
+    }
+
+    if (!Array.isArray(topics) || !topics.every((topic) => typeof topic === "string")) {
+      return res.status(400).json({ message: "Topics must be an array of non-empty strings" });
+    }
+
     const existing = await Question.findOne({ 
-      title, 
-      difficulty, 
-      topics: { $all: topics, $size: topics.length } 
+      title 
     });
 
     if (existing) {
@@ -29,7 +43,7 @@ router.post("/addquestion", async (req: Request, res: Response) => {
 });
 
 // Get all the questions by providing a way to filter questions based on topic and difficulty
-router.get("/getquestion", async (req: Request, res: Response) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
     const { topic, difficulty } = req.query;
     const query: Record<string, any> = {};
