@@ -125,7 +125,6 @@ class YjsDocumentManager {
     }
   }
 
-
   startCleanupTask() {
     setInterval(() => {
       this.cleanupUnusedDocuments().catch(error => {
