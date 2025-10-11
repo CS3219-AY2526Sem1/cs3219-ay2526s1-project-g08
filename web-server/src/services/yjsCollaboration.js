@@ -54,6 +54,11 @@ class YjsCollaboration {
     this.socket.on('error', (error) => {
       console.error('Socket error:', error);
     });
+
+    this.socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
+      this.synced = false;
+    });
   }
 
   setupSocketHandlers() {
@@ -78,7 +83,7 @@ class YjsCollaboration {
     this.ydoc.on('update', (update, origin) => {
       if (this.synced && origin !== 'server') {
         this.socket.emit('yjs-update', {
-          update: Array.from(update)
+          update: update
         });
       }
     });
@@ -100,7 +105,7 @@ class YjsCollaboration {
   requestSync() {
     const stateVector = Y.encodeStateVector(this.ydoc);
     this.socket.emit('yjs-sync-request', {
-      stateVector: Array.from(stateVector)
+      stateVector: stateVector
     });
   }
   
