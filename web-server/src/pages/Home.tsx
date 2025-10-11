@@ -9,7 +9,7 @@ import {
   Button,
   TextField,
   Alert,
-  Stack
+  Stack,
 } from "@mui/material";
 import { useMatchmaking } from "../hooks/useMatchmaking";
 
@@ -18,12 +18,11 @@ export default function Home() {
   const [difficulty, setDifficulty] = useState("easy");
   const [language, setLanguage] = useState("python");
 
-  const { match, findMatch, isFinding, timeProgress, error, resetMatch } = useMatchmaking(userId, difficulty, language, [
-    "arrays",
-  ], 60);
+  const { match, findMatch, isFinding, timeProgress, error, resetMatch } =
+    useMatchmaking(userId, difficulty, language, ["arrays"], 60);
 
   const handleFindMatch = async () => {
-      await findMatch(); 
+    await findMatch();
   };
 
   return (
@@ -67,20 +66,20 @@ export default function Home() {
       </FormControl>
 
       <Stack direction="row" spacing={2}>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           onClick={handleFindMatch}
-          disabled={isFinding || !!match}>
-            
-          {match 
+          disabled={isFinding || !!match}
+        >
+          {match
             ? "Matched!"
             : isFinding
-            ? 'Finding (${timeProgress}s)'
+            ? `Finding (${timeProgress}s)`
             : "Find Match"}
         </Button>
 
-        { (match || error) && (
-          <Button variant='outlined' onClick={resetMatch}>
+        {(match || error) && (
+          <Button variant="outlined" onClick={resetMatch}>
             Find Again
           </Button>
         )}
@@ -94,7 +93,7 @@ export default function Home() {
 
       {isFinding && !match && (
         <Typography variant="body2" color="text.secondary">
-          Searching for peer... progressed {timeProgress}s 
+          Searching for peer... progressed {timeProgress}s
         </Typography>
       )}
 

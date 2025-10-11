@@ -18,3 +18,9 @@ export interface MatchFoundMessage {
 }
 
 export type WebSocketMessage = MatchFoundMessage; // can add more msg types in future
+
+declare global {
+  interface Window {
+    matchmakingWS?: WebSocket;
+  }
+}

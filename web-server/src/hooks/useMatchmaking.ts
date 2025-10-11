@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { connectWebSocket, joinQueue } from "../services/websocket";
+import {
+  connectWebSocket,
+  joinQueue,
+  closeWebSocket,
+} from "../services/websocket";
 import { Match, WebSocketMessage } from "../types";
 
 export const useMatchmaking = (
@@ -22,32 +26,42 @@ export const useMatchmaking = (
     setTimeProgress(0);
     setError(null);
 
-    await connectWebSocket((msg: WebSocketMessage) => {
-      if (msg.event === "match_found"){
-        stopSearching(); //need to be initialised 
-        setMatch(msg.match);
-      }
-    });
-
-    await joinQueue({ id: userId, difficulty, language, topics }); //informing server on request to join queue
-
-    interval.current = setInterval( () => {
-      setTimeProgress((t) => {
-        const increment = t + 1; 
-        if(increment >= timeout){
-          stopSearching(); 
-          setError("No Match found. Please try again or try different topics/levels.");
+    try {
+      await connectWebSocket((msg: WebSocketMessage) => {
+        if (msg.event === "match_found") {
+          stopSearching(); //need to be initialised
+          setMatch(msg.match);
         }
-        return increment; 
       });
-    }, 1000);
+
+      await joinQueue({ id: userId, difficulty, language, topics }); //informing server on request to join queue
+
+      // Start the timer AFTER successful connection and queue join
+      interval.current = setInterval(() => {
+        setTimeProgress((t) => {
+          const increment = t + 1;
+          if (increment >= timeout) {
+            stopSearching();
+            setError(
+              "No Match found. Please try again or try different topics/levels."
+            );
+          }
+          return increment;
+        });
+      }, 1000);
+    } catch (error) {
+      console.error("Failed to connect to matching service:", error);
+      setError("Failed to connect to matching service. Please try again.");
+      setIsFinding(false);
+      return;
+    }
   };
 
   const stopSearching = () => {
     if (interval.current) {
       clearInterval(interval.current);
       interval.current = null;
-    } 
+    }
     setIsFinding(false);
   };
 
@@ -58,9 +72,22 @@ export const useMatchmaking = (
     setError(null);
   };
 
-  useEffect( () => {
-    return () => stopSearching(); 
-  }, []);
+  useEffect(() => {
+    // Clean up on page unload/refresh if WebSocket is active
+    const handleBeforeUnload = () => {
+      if (isFinding) {
+        closeWebSocket();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      // Only clean up on component unmount, not on every isFinding change
+      stopSearching();
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []); // Empty dependency array - only runs on mount/unmount
 
   return { match, findMatch, isFinding, timeProgress, error, resetMatch };
 };
