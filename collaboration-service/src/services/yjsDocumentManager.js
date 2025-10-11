@@ -37,12 +37,12 @@ class YjsDocumentManager {
     // Setup auto-persistence on updates (debounced)
     let persistTimeout = null;
     ydoc.on('update', (update) => {
-      // Save to database when no updates for 500ms
+      // Save to database when no updates for 2 seconds
       if (persistTimeout) clearTimeout(persistTimeout);
       
       persistTimeout = setTimeout(async () => {
         await this.persistDocument(sessionId, update);
-      }, 500);
+      }, 2000);
     });
 
     logger.info(`Created Yjs document for session ${sessionId}`);
