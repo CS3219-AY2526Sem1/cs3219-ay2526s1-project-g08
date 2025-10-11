@@ -35,11 +35,7 @@ const sessionSchema = new mongoose.Schema({
     default: 'active',
     index: true
   },
-  // Current session state
-  currentCode: {
-    type: String,
-    default: ''
-  },
+
   // Connected users (live data)
   connectedUsers: [{
     userId: String,
@@ -48,6 +44,19 @@ const sessionSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+
+  // CRDT document state (stored as binary)
+  yjsState: {
+    type: Buffer,
+    default: null
+  },
+
+  // Track document version for debugging
+  yjsVersion: {
+    type: Number,
+    default: 0
+  },
+  
   // Metadata
   terminationReason: String
 }, {
@@ -77,9 +86,9 @@ sessionSchema.methods.removeUser = function(userId) {
   return this;
 };
 
-sessionSchema.methods.updateCode = function(code) {
-  this.currentCode = code;
-  this.updatedAt = new Date();
+sessionSchema.methods.updateYjsState = function(stateUpdate) {
+  this.yjsState = stateUpdate;
+  this.yjsVersion += 1;
   return this;
 };
 
