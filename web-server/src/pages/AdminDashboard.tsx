@@ -19,13 +19,15 @@ import {
   DialogActions,
   Stack,
 } from "@mui/material";
-import { TbPlus, TbTrash, TbX } from "react-icons/tb";
+import { TbPlus, TbTrash, TbX, TbEdit, TbEye } from "react-icons/tb";
 import {
   getAllQuestions,
   createQuestion,
+  updateQuestion,
   deleteQuestion,
   Question,
   CreateQuestionData,
+  UpdateQuestionData,
 } from "../services/questionService";
 
 export default function AdminDashboard() {
@@ -34,6 +36,11 @@ export default function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(
+    null
+  );
+  const [isEditMode, setIsEditMode] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<CreateQuestionData>({
@@ -70,31 +77,76 @@ export default function AdminDashboard() {
         return;
       }
 
-      await createQuestion(formData);
-      setSuccess("Question created successfully!");
+      if (isEditMode && selectedQuestion) {
+        // Update existing question
+        const updates: UpdateQuestionData = {
+          description: formData.description,
+          difficulty: formData.difficulty,
+          topics: formData.topics,
+        };
+
+        // If title changed, include newTitle in update
+        if (formData.title !== selectedQuestion.title) {
+          updates.newTitle = formData.title;
+        }
+
+        await updateQuestion(selectedQuestion._id, updates);
+        setSuccess("Question updated successfully!");
+      } else {
+        // Create new question
+        await createQuestion(formData);
+        setSuccess("Question created successfully!");
+      }
+
       setError(null);
       setOpenDialog(false);
-
-      // Reset form
-      setFormData({
-        title: "",
-        description: "",
-        difficulty: "easy",
-        topics: [],
-      });
-      setTopicInput("");
-
-      // Refresh questions list
+      resetForm();
       fetchQuestions();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Failed to create question"
+        err instanceof Error ? err.message : isEditMode 
+          ? "Failed to update question"
+          : "Failed to create question"
       );
       setSuccess(null);
     }
   };
 
-  const handleDeleteQuestion = async (title: string) => {
+  const handleEditQuestion = (question: Question) => {
+    setSelectedQuestion(question);
+    setFormData({
+      title: question.title,
+      description: question.description,
+      difficulty: question.difficulty,
+      topics: [...question.topics],
+    });
+    setIsEditMode(true);
+    setOpenDialog(true);
+  };
+
+  const handleViewQuestion = (question: Question) => {
+    setSelectedQuestion(question);
+    setOpenViewDialog(true);
+  };
+
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      description: "",
+      difficulty: "easy",
+      topics: [],
+    });
+    setTopicInput("");
+    setSelectedQuestion(null);
+    setIsEditMode(false);
+  };
+
+  const handleOpenAddDialog = () => {
+    resetForm();
+    setOpenDialog(true);
+  };
+
+  const handleDeleteQuestion = async (questionId: string, title: string) => {
     if (
       !window.confirm(
         `Are you sure you want to delete "${title}"?\n\n` +
@@ -106,7 +158,7 @@ export default function AdminDashboard() {
     }
 
     try {
-      await deleteQuestion(title);
+      await deleteQuestion(questionId);
       setSuccess("Question marked as deleted successfully!");
       setError(null);
       fetchQuestions();
@@ -162,7 +214,7 @@ export default function AdminDashboard() {
         <Button
           variant="contained"
           startIcon={<TbPlus />}
-          onClick={() => setOpenDialog(true)}
+          onClick={handleOpenAddDialog}
         >
           Add Question
         </Button>
@@ -199,8 +251,15 @@ export default function AdminDashboard() {
                 },
               }}
             >
-              <Card sx={{ height: "100%" }}>
-                <CardContent>
+              <Card 
+                sx={{ 
+                  height: "100%", 
+                  display: "flex", 
+                  flexDirection: "column",
+                  position: "relative"
+                }}
+              >
+                <CardContent sx={{ flexGrow: 1, pb: 1 }}>
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="h6" gutterBottom>
                       {question.title}
@@ -240,15 +299,34 @@ export default function AdminDashboard() {
                   </Box>
                 </CardContent>
 
-                <CardActions>
-                  <Button
-                    size="small"
-                    color="error"
-                    startIcon={<TbTrash />}
-                    onClick={() => handleDeleteQuestion(question.title)}
-                  >
-                    Delete
-                  </Button>
+                <CardActions sx={{ pt: 0, pb: 2, px: 2 }}>
+                  <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<TbEye />}
+                      onClick={() => handleViewQuestion(question)}
+                    >
+                      View
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<TbEdit />}
+                      onClick={() => handleEditQuestion(question)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="small"
+                      color="error"
+                      variant="outlined"
+                      startIcon={<TbTrash />}
+                      onClick={() => handleDeleteQuestion(question._id, question.title)}
+                    >
+                      Delete
+                    </Button>
+                  </Box>
                 </CardActions>
               </Card>
             </Box>
@@ -256,15 +334,30 @@ export default function AdminDashboard() {
         </Box>
       )}
 
-      {/* Add Question Dialog */}
+      {/* Add/Edit Question Dialog */}
       <Dialog
         open={openDialog}
-        onClose={() => setOpenDialog(false)}
+        onClose={() => {
+          setOpenDialog(false);
+          resetForm();
+        }}
         maxWidth="md"
         fullWidth
+        sx={{ zIndex: 1300 }} // Ensure dialog is above other elements
       >
-        <DialogTitle>Add New Question</DialogTitle>
+        <DialogTitle>
+          {isEditMode ? "Edit Question" : "Add New Question"}
+        </DialogTitle>
         <DialogContent>
+          {error && (
+            <Alert 
+              severity="error" 
+              sx={{ mb: 2, zIndex: 1400 }} 
+              onClose={() => setError(null)}
+            >
+              {error}
+            </Alert>
+          )}
           <Stack spacing={3} sx={{ mt: 1 }}>
             <TextField
               label="Question Title"
@@ -341,10 +434,120 @@ export default function AdminDashboard() {
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleCreateQuestion}>
-            Create Question
+          <Button onClick={() => {
+            setOpenDialog(false);
+            resetForm();
+          }}>
+            Cancel
           </Button>
+          <Button variant="contained" onClick={handleCreateQuestion}>
+            {isEditMode ? "Update Question" : "Create Question"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Question Details Dialog */}
+      <Dialog
+        open={openViewDialog}
+        onClose={() => {
+          setOpenViewDialog(false);
+          setSelectedQuestion(null);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Question Details</DialogTitle>
+        <DialogContent>
+          {selectedQuestion && (
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Title
+                </Typography>
+                <Typography variant="h6">{selectedQuestion.title}</Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Difficulty
+                </Typography>
+                <Chip
+                  label={selectedQuestion.difficulty.toUpperCase()}
+                  color={getDifficultyColor(selectedQuestion.difficulty) as any}
+                  size="small"
+                />
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Description
+                </Typography>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word"
+                  }}
+                >
+                  {selectedQuestion.description}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Topics
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                  {selectedQuestion.topics.map((topic, index) => (
+                    <Chip key={index} label={topic} variant="outlined" />
+                  ))}
+                </Box>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Created At
+                </Typography>
+                <Typography variant="body2">
+                  {new Date(selectedQuestion.createdAt).toLocaleString()}
+                </Typography>
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => {
+            setOpenViewDialog(false);
+            setSelectedQuestion(null);
+          }}>
+            Close
+          </Button>
+          {selectedQuestion && (
+            <>
+              <Button
+                variant="outlined"
+                startIcon={<TbEdit />}
+                onClick={() => {
+                  setOpenViewDialog(false);
+                  handleEditQuestion(selectedQuestion);
+                }}
+              >
+                Edit
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<TbTrash />}
+                onClick={() => {
+                  setOpenViewDialog(false);
+                  handleDeleteQuestion(selectedQuestion._id, selectedQuestion.title);
+                }}
+              >
+                Delete
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
     </Box>
