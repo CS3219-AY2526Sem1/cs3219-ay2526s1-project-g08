@@ -37,9 +37,11 @@ export default function Home() {
         setAvailableTopics(topics);
         setLoadingTopics(false);
         setLastTopicRefresh(new Date());
-        
+
         // Remove any selected topics that are no longer available
-        setSelectedTopics((prev) => prev.filter((topic) => topics.includes(topic)));
+        setSelectedTopics((prev) =>
+          prev.filter((topic) => topics.includes(topic))
+        );
       } catch (err) {
         console.error("Failed to fetch topics:", err);
         setLoadingTopics(false);
@@ -62,9 +64,11 @@ export default function Home() {
       const topics = await getAllTopics();
       setAvailableTopics(topics);
       setLastTopicRefresh(new Date());
-      
+
       // Remove any selected topics that are no longer available
-      setSelectedTopics((prev) => prev.filter((topic) => topics.includes(topic)));
+      setSelectedTopics((prev) =>
+        prev.filter((topic) => topics.includes(topic))
+      );
     } catch (err) {
       console.error("Failed to fetch topics:", err);
     } finally {
@@ -72,13 +76,13 @@ export default function Home() {
     }
   };
 
-  const handleTopicChange = (event: SelectChangeEvent<typeof selectedTopics>) => {
+  const handleTopicChange = (
+    event: SelectChangeEvent<typeof selectedTopics>
+  ) => {
     const {
       target: { value },
     } = event;
-    setSelectedTopics(
-      typeof value === "string" ? value.split(",") : value
-    );
+    setSelectedTopics(typeof value === "string" ? value.split(",") : value);
   };
 
   const handleFindMatch = async () => {
@@ -136,12 +140,14 @@ export default function Home() {
           renderValue={(selected) => (
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
               {selected.map((value) => (
-                <Chip 
-                  key={value} 
-                  label={value} 
+                <Chip
+                  key={value}
+                  label={value}
                   size="small"
                   onDelete={() => {
-                    setSelectedTopics((prev) => prev.filter((t) => t !== value));
+                    setSelectedTopics((prev) =>
+                      prev.filter((t) => t !== value)
+                    );
                   }}
                   onMouseDown={(e) => {
                     e.stopPropagation();
@@ -164,7 +170,14 @@ export default function Home() {
             ))
           )}
         </Select>
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 0.5 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mt: 0.5,
+          }}
+        >
           <Button
             size="small"
             onClick={handleManualRefresh}
@@ -175,7 +188,8 @@ export default function Home() {
           </Button>
           {lastTopicRefresh && (
             <Typography variant="caption" color="text.secondary">
-              Topics updated: {lastTopicRefresh.toLocaleTimeString()} (auto-refresh every 30s)
+              Topics updated: {lastTopicRefresh.toLocaleTimeString()}{" "}
+              (auto-refresh every 30s)
             </Typography>
           )}
         </Box>
@@ -185,7 +199,7 @@ export default function Home() {
         <Button
           variant="contained"
           onClick={handleFindMatch}
-          disabled={isFinding || !!match || selectedTopics.length === 0}
+          disabled={isFinding || !!match}
         >
           {match
             ? "Matched!"
@@ -202,8 +216,8 @@ export default function Home() {
       </Stack>
 
       {selectedTopics.length === 0 && !isFinding && !match && (
-        <Alert severity="info" sx={{ mt: 2 }}>
-          Please select at least one topic to find a match.
+        <Alert severity="warning" sx={{ mt: 2 }}>
+          No topic selected — you may be matched with any category.
         </Alert>
       )}
 
