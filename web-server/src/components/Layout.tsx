@@ -8,18 +8,29 @@ import {
   Button,
 } from "@mui/material";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { TbHome, TbUser, TbLogout } from "react-icons/tb";
+import { TbHome, TbUser, TbLogout, TbShieldCheck } from "react-icons/tb";
+import { useAuth } from "../hooks/useAuth";
 
 const SIDEBAR_WIDTH = 240;
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isAdmin } = useAuth();
 
   const menuItems = [
     { path: "/home", label: "Home", icon: <TbHome /> },
     { path: "/profile", label: "Profile", icon: <TbUser /> },
   ];
+
+  // Add admin dashboard for admin users
+  if (isAdmin) {
+    menuItems.splice(1, 0, {
+      path: "/admin",
+      label: "Admin Dashboard",
+      icon: <TbShieldCheck />,
+    });
+  }
 
   const handleLogout = async () => {
     // Clean up WebSocket connection if it exists

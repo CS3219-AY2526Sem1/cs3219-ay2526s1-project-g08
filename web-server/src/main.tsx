@@ -5,6 +5,7 @@ import { AppTheme } from "./theme";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
+import AdminDashboard from "./pages/AdminDashboard";
 import Layout from "./components/Layout";
 import AuthCallback from "./pages/AuthCallback";
 
@@ -18,6 +19,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
           <Route element={<Layout />}>
             <Route path="home" element={<Home />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="admin" element={<AdminDashboard />} />
           </Route>
         </Routes>
       </BrowserRouter>
