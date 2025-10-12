@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db";
 import questionRoutes from "./routes/questionRoutes";
@@ -9,6 +10,12 @@ const app = express();
 const PORT = process.env.PORT || 3003;
 
 // Middleware
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Routes
