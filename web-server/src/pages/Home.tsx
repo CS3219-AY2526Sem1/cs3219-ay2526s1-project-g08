@@ -223,7 +223,41 @@ export default function Home() {
 
       {match && (
         <Alert severity="success">
-          Match Found! Users: {match.users.join(", ")}
+          <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+            Match Found! Users: {match.users.join(", ")}
+          </Typography>
+          {match.question && (
+            <Box
+              sx={{ mt: 2, p: 2, bgcolor: "background.paper", borderRadius: 1 }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: "bold", mb: 1 }}
+              >
+                📝 Selected Question: {match.question.title}
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 0.5 }}
+              >
+                <strong>Difficulty:</strong> {match.question.difficulty}
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 0.5 }}
+              >
+                <strong>Topics:</strong> {match.question.topics.join(", ")}
+              </Typography>
+              {match.matchedTopics && match.matchedTopics.length > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Matched Topics:</strong>{" "}
+                  {match.matchedTopics.join(", ")}
+                </Typography>
+              )}
+            </Box>
+          )}
         </Alert>
       )}
 

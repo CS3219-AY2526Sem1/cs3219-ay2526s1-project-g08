@@ -77,6 +77,11 @@ export default function AdminDashboard() {
         return;
       }
 
+      if (formData.topics.length === 0) {
+        setError("At least one topic is required");
+        return;
+      }
+
       if (isEditMode && selectedQuestion) {
         // Update existing question
         const updates: UpdateQuestionData = {
@@ -104,7 +109,9 @@ export default function AdminDashboard() {
       fetchQuestions();
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : isEditMode 
+        err instanceof Error
+          ? err.message
+          : isEditMode
           ? "Failed to update question"
           : "Failed to create question"
       );
@@ -251,12 +258,12 @@ export default function AdminDashboard() {
                 },
               }}
             >
-              <Card 
-                sx={{ 
-                  height: "100%", 
-                  display: "flex", 
+              <Card
+                sx={{
+                  height: "100%",
+                  display: "flex",
                   flexDirection: "column",
-                  position: "relative"
+                  position: "relative",
                 }}
               >
                 <CardContent sx={{ flexGrow: 1, pb: 1 }}>
@@ -322,7 +329,9 @@ export default function AdminDashboard() {
                       color="error"
                       variant="outlined"
                       startIcon={<TbTrash />}
-                      onClick={() => handleDeleteQuestion(question._id, question.title)}
+                      onClick={() =>
+                        handleDeleteQuestion(question._id, question.title)
+                      }
                     >
                       Delete
                     </Button>
@@ -350,9 +359,9 @@ export default function AdminDashboard() {
         </DialogTitle>
         <DialogContent>
           {error && (
-            <Alert 
-              severity="error" 
-              sx={{ mb: 2, zIndex: 1400 }} 
+            <Alert
+              severity="error"
+              sx={{ mb: 2, zIndex: 1400 }}
               onClose={() => setError(null)}
             >
               {error}
@@ -402,7 +411,7 @@ export default function AdminDashboard() {
             <Box>
               <Box sx={{ display: "flex", gap: 1, mb: 1 }}>
                 <TextField
-                  label="Add Topic"
+                  label="Add Topic *"
                   size="small"
                   value={topicInput}
                   onChange={(e) => setTopicInput(e.target.value)}
@@ -434,10 +443,12 @@ export default function AdminDashboard() {
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => {
-            setOpenDialog(false);
-            resetForm();
-          }}>
+          <Button
+            onClick={() => {
+              setOpenDialog(false);
+              resetForm();
+            }}
+          >
             Cancel
           </Button>
           <Button variant="contained" onClick={handleCreateQuestion}>
@@ -461,14 +472,22 @@ export default function AdminDashboard() {
           {selectedQuestion && (
             <Stack spacing={3} sx={{ mt: 1 }}>
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Title
                 </Typography>
                 <Typography variant="h6">{selectedQuestion.title}</Typography>
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Difficulty
                 </Typography>
                 <Chip
@@ -479,14 +498,18 @@ export default function AdminDashboard() {
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Description
                 </Typography>
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
+                <Typography
+                  variant="body1"
+                  sx={{
                     whiteSpace: "pre-wrap",
-                    wordBreak: "break-word"
+                    wordBreak: "break-word",
                   }}
                 >
                   {selectedQuestion.description}
@@ -494,7 +517,11 @@ export default function AdminDashboard() {
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Topics
                 </Typography>
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
@@ -505,7 +532,11 @@ export default function AdminDashboard() {
               </Box>
 
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
                   Created At
                 </Typography>
                 <Typography variant="body2">
@@ -517,10 +548,12 @@ export default function AdminDashboard() {
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={() => {
-            setOpenViewDialog(false);
-            setSelectedQuestion(null);
-          }}>
+          <Button
+            onClick={() => {
+              setOpenViewDialog(false);
+              setSelectedQuestion(null);
+            }}
+          >
             Close
           </Button>
           {selectedQuestion && (
@@ -541,7 +574,10 @@ export default function AdminDashboard() {
                 startIcon={<TbTrash />}
                 onClick={() => {
                   setOpenViewDialog(false);
-                  handleDeleteQuestion(selectedQuestion._id, selectedQuestion.title);
+                  handleDeleteQuestion(
+                    selectedQuestion._id,
+                    selectedQuestion.title
+                  );
                 }}
               >
                 Delete
