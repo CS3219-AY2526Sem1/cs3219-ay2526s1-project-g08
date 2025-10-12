@@ -33,6 +33,7 @@ router.get("/profile", async (req: Request, res: Response) => {
     res.json({
       userId: user.userId,
       name: user.name,
+      role: user.role || "user", // Include role in profile response
     });
   } catch (err) {
     console.error("Profile fetch error:", err);
