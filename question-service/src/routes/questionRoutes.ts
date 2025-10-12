@@ -136,7 +136,9 @@ router.post("/", async (req: Request, res: Response) => {
     ) {
       return res
         .status(400)
-        .json({ message: "Topics must be an array of at least one non-empty string" });
+        .json({
+          message: "Topics must be an array of at least one non-empty string",
+        });
     }
 
     const existing = await Question.findOne({
@@ -217,7 +219,9 @@ router.put("/:id", async (req: Request, res: Response) => {
       ) {
         return res
           .status(400)
-          .json({ message: "Topics must be an array of at least one non-empty string" });
+          .json({
+            message: "Topics must be an array of at least one non-empty string",
+          });
       }
       question.topics = topics;
     }
