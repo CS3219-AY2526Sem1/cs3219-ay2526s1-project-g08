@@ -16,6 +16,13 @@ export interface CreateQuestionData {
   topics: string[];
 }
 
+export interface UpdateQuestionData {
+  description?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  topics?: string[];
+  newTitle?: string;
+}
+
 export async function getAllQuestions(): Promise<Question[]> {
   const response = await fetch(QUESTION_SERVICE_URL, {
     credentials: "include",
@@ -41,16 +48,58 @@ export async function createQuestion(
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to create question");
+    let errorMessage = "Failed to create question";
+    try {
+      const error = await response.json();
+      errorMessage = error.message || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use status text
+      errorMessage = `Failed to create question: ${response.status} ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
 
   return response.json();
 }
 
-export async function deleteQuestion(title: string): Promise<void> {
+export async function updateQuestion(
+  questionId: string,
+  data: UpdateQuestionData
+): Promise<Question> {
+  console.log("Updating question:", { questionId, data });
+  
   const response = await fetch(
-    `${QUESTION_SERVICE_URL}/${encodeURIComponent(title)}`,
+    `${QUESTION_SERVICE_URL}/${questionId}`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!response.ok) {
+    let errorMessage = "Failed to update question";
+    try {
+      const error = await response.json();
+      errorMessage = error.message || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use status text
+      errorMessage = `Failed to update question: ${response.status} ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+export async function deleteQuestion(questionId: string): Promise<void> {
+  console.log("Deleting question:", questionId);
+  
+  const response = await fetch(
+    `${QUESTION_SERVICE_URL}/${questionId}`,
     {
       method: "DELETE",
       credentials: "include",
@@ -58,7 +107,14 @@ export async function deleteQuestion(title: string): Promise<void> {
   );
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message || "Failed to delete question");
+    let errorMessage = "Failed to delete question";
+    try {
+      const error = await response.json();
+      errorMessage = error.message || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use status text
+      errorMessage = `Failed to delete question: ${response.status} ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
 }
