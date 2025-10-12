@@ -35,6 +35,18 @@ export async function getAllQuestions(): Promise<Question[]> {
   return response.json();
 }
 
+export async function getAllTopics(): Promise<string[]> {
+  const response = await fetch(`${QUESTION_SERVICE_URL}/topics`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch topics");
+  }
+
+  return response.json();
+}
+
 export async function createQuestion(
   data: CreateQuestionData
 ): Promise<Question> {
@@ -67,18 +79,15 @@ export async function updateQuestion(
   data: UpdateQuestionData
 ): Promise<Question> {
   console.log("Updating question:", { questionId, data });
-  
-  const response = await fetch(
-    `${QUESTION_SERVICE_URL}/${questionId}`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify(data),
-    }
-  );
+
+  const response = await fetch(`${QUESTION_SERVICE_URL}/${questionId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
 
   if (!response.ok) {
     let errorMessage = "Failed to update question";
@@ -97,14 +106,11 @@ export async function updateQuestion(
 
 export async function deleteQuestion(questionId: string): Promise<void> {
   console.log("Deleting question:", questionId);
-  
-  const response = await fetch(
-    `${QUESTION_SERVICE_URL}/${questionId}`,
-    {
-      method: "DELETE",
-      credentials: "include",
-    }
-  );
+
+  const response = await fetch(`${QUESTION_SERVICE_URL}/${questionId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
 
   if (!response.ok) {
     let errorMessage = "Failed to delete question";

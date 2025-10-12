@@ -13,6 +13,28 @@ const decodeTitle = (title: string): string => {
   }
 };
 
+// Get all unique topics from non-deleted questions
+// IMPORTANT: This route must come before /:id routes to avoid matching "topics" as an ID
+router.get("/topics", async (req: Request, res: Response) => {
+  try {
+    // Aggregate all topics from non-deleted questions
+    const questions = await Question.find({ isDeleted: false }, 'topics');
+    
+    // Flatten and get unique topics
+    const allTopics = questions.flatMap(q => q.topics);
+    const uniqueTopics = [...new Set(allTopics)].sort((a, b) => 
+      a.toLowerCase().localeCompare(b.toLowerCase())
+    );
+    
+    res.json(uniqueTopics);
+  } catch (err) {
+    console.error("Failed to fetch topics:", err);
+    res.status(500).json({
+      message: "Failed to fetch available topics",
+    });
+  }
+});
+
 // Add a question (Admin only - middleware should be added in main app)
 router.post("/", async (req: Request, res: Response) => {
   try {
@@ -78,9 +100,9 @@ router.put("/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     const { description, difficulty, topics, newTitle } = req.body;
 
-    console.log("Update request received:", { 
+    console.log("Update request received:", {
       id,
-      body: req.body 
+      body: req.body,
     });
 
     if (!id || id.trim() === "") {
@@ -92,8 +114,8 @@ router.put("/:id", async (req: Request, res: Response) => {
 
     if (!question) {
       console.log("Question not found with ID:", id);
-      return res.status(404).json({ 
-        message: `Question not found with ID: "${id}"`
+      return res.status(404).json({
+        message: `Question not found with ID: "${id}"`,
       });
     }
 
@@ -119,7 +141,9 @@ router.put("/:id", async (req: Request, res: Response) => {
     if (topics !== undefined) {
       if (
         !Array.isArray(topics) ||
-        !topics.every((topic) => typeof topic === "string" && topic.trim() !== "")
+        !topics.every(
+          (topic) => typeof topic === "string" && topic.trim() !== ""
+        )
       ) {
         return res
           .status(400)
