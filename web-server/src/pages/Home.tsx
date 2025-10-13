@@ -10,6 +10,10 @@ import {
   TextField,
   Alert,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { useMatchmaking } from "../hooks/useMatchmaking";
 
@@ -18,7 +22,7 @@ export default function Home() {
   const [difficulty, setDifficulty] = useState("easy");
   const [language, setLanguage] = useState("python");
 
-  const { match, findMatch, isFinding, timeProgress, error, resetMatch } =
+  const { match, findMatch, acceptMatch, declineMatch, isFinding, isAccepting, timeProgress, error, resetMatch } =
     useMatchmaking(userId, difficulty, language, ["arrays"], 60);
 
   const handleFindMatch = async () => {
@@ -74,8 +78,8 @@ export default function Home() {
           {match
             ? "Matched!"
             : isFinding
-            ? `Finding (${timeProgress}s)`
-            : "Find Match"}
+              ? `Finding (${timeProgress}s)`
+              : "Find Match"}
         </Button>
 
         {(match || error) && (
@@ -85,10 +89,23 @@ export default function Home() {
         )}
       </Stack>
 
-      {match && (
-        <Alert severity="success">
-          Match Found! Users: {match.users.join(", ")}
-        </Alert>
+      {match && match.status === "pending" && (
+        <Dialog open maxWidth="sm" fullWidth>
+          <DialogTitle>Match Found</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1">
+              A peer has been found. Please accept to proceed or decline to find again.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={declineMatch} variant="contained" sx={{ backgroundColor: "rgba(244, 67, 54, 0.4)", color: "#fff", "&:hover": { backgroundColor: "rgba(244, 67, 54, 0.5)" } }}>
+              Decline
+            </Button>
+            <Button onClick={acceptMatch} variant="contained" disabled={isAccepting}>
+              {isAccepting ? "Accepting..." : "Accept"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
 
       {isFinding && !match && (

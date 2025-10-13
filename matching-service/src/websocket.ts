@@ -41,6 +41,16 @@ export function startWebSocketServer(port: number) {
           console.log(`No match found for user ${user.id}`);
         }
       }
+
+      if (data.action === "accept_match") {
+        if (!ws.userId) return;
+        await handleMatchAccept(data.matchId, ws.userId);
+      }
+
+      if (data.action === "decline_match") {
+        if (!ws.userId) return;
+        await handleMatchDecline(data.matchId);
+      }
     });
 
     ws.on("close", async () => {
@@ -60,5 +70,51 @@ export function startWebSocketServer(port: number) {
         );
       }
     });
+  });
+}
+
+async function handleMatchAccept(matchId: string, userId: string) {
+  const matchData = await redis.hgetall(matchId);
+  if (!matchData.users) return;
+
+  const users: string[] = JSON.parse(matchData.users);
+  const acceptedUsers: string[] = JSON.parse(matchData.acceptedUsers || "[]");
+
+  if (!acceptedUsers.includes(userId)) {
+    acceptedUsers.push(userId);
+    await redis.hset(matchId, { acceptedUsers: JSON.stringify(acceptedUsers) });
+  }
+
+  if (acceptedUsers.length === 2) {
+    await redis.hset(matchId, { status: "accepted" });
+    users.forEach((uid) => {
+      const ws = activeConnections.get(uid);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            event: "match_accepted",
+            match: { id: matchId, users, status: "accepted" },
+          })
+        );
+      }
+    });
+  }
+}
+
+async function handleMatchDecline(matchId: string) {
+  const matchData = await redis.hgetall(matchId);
+  if (!matchData.users) return;
+
+  const users: string[] = JSON.parse(matchData.users);
+  await redis.hset(matchId, { status: "declined" });
+
+  users.forEach((uid) => {
+    const ws = activeConnections.get(uid);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(
+        JSON.stringify({ event: "match_declined", match: { id: matchId, users, status: "declined" },
+        })
+      );
+    }
   });
 }
