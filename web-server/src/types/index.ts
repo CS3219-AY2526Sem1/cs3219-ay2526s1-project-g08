@@ -9,7 +9,10 @@ export interface User {
 export interface Match {
   id: string;
   users: string[];
-  status: string;
+  status: "pending" | "accepted" | "declined";
+  difficulty?: string;
+  topics?: string[];
+  language?: string;
 }
 
 export interface MatchFoundMessage {
@@ -17,7 +20,20 @@ export interface MatchFoundMessage {
   match: Match;
 }
 
-export type WebSocketMessage = MatchFoundMessage; // can add more msg types in future
+export interface MatchAcceptedMessage {
+  event: "match_accepted";
+  match: Match;
+}
+
+export interface MatchDeclinedMessage {
+  event: "match_declined";
+  match: Match;
+}
+
+export type WebSocketMessage =
+  | MatchFoundMessage
+  | MatchAcceptedMessage
+  | MatchDeclinedMessage;
 
 declare global {
   interface Window {
