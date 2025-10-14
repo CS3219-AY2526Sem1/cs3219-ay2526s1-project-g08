@@ -1,31 +1,71 @@
 import { useState, useEffect } from "react";
 
-export function useAuth() {
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<{ userId: string; name: string } | null>(null);
+interface UserProfile {
+  userId: string;
+  name: string;
+  role?: "user" | "admin";
+}
 
+export function useAuth() {
+  const [user, setUser] = useState<{ userId: string; name: string } | null>(
+    null
+  );
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check if user is logged in by checking localStorage and fetching profile
   useEffect(() => {
-    const storedToken = localStorage.getItem("jwt");
-    const storedUser = localStorage.getItem("user");
-    if (storedToken) setToken(storedToken);
-    if (storedUser) setUser(JSON.parse(storedUser));
+    const initAuth = async () => {
+      const storedUser = localStorage.getItem("user");
+
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+
+        // Fetch profile to get role information and verify session
+        try {
+          const response = await fetch("http://localhost:3002/user/profile", {
+            credentials: "include",
+          });
+
+          if (response.ok) {
+            const userData = await response.json();
+            setProfile(userData);
+            // Update localStorage with latest profile data
+            localStorage.setItem("user", JSON.stringify(userData));
+            setUser(userData);
+          } else {
+            // Session expired or invalid - clear localStorage
+            localStorage.removeItem("user");
+            setUser(null);
+            setProfile(null);
+          }
+        } catch (err) {
+          console.error("Error fetching user profile:", err);
+          // Don't clear user on network error, but clear profile
+          setProfile(null);
+        }
+      }
+
+      setIsLoading(false);
+    };
+
+    initAuth();
   }, []);
 
-  const login = (jwt: string, userData: { userId: string; name: string }) => {
-    localStorage.setItem("jwt", jwt);
+  const login = (userData: { userId: string; name: string }) => {
     localStorage.setItem("user", JSON.stringify(userData));
-    setToken(jwt);
     setUser(userData);
   };
 
   const logout = () => {
-    localStorage.removeItem("jwt");
     localStorage.removeItem("user");
-    setToken(null);
     setUser(null);
+    setProfile(null);
   };
 
-  const isLoggedIn = !!token;
+  // User is logged in if we have user data in localStorage
+  const isLoggedIn = !!user;
+  const isAdmin = profile?.role === "admin";
 
-  return { token, user, login, logout, isLoggedIn };
+  return { user, login, logout, isLoggedIn, isAdmin, profile, isLoading };
 }
