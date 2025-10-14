@@ -14,17 +14,14 @@ const decodeTitle = (title: string): string => {
 };
 
 // Get all unique topics from non-deleted questions
-// IMPORTANT: This route must come before /:id routes to avoid matching "topics" as an ID
 router.get("/topics", async (req: Request, res: Response) => {
   try {
-    // Aggregate all topics from non-deleted questions
-    const questions = await Question.find({ isDeleted: false }, "topics");
+    // Db finds all unique topics from non-deteleted questions
+    const uniqueTopics = await Question.distinct("topics", {
+      isDeleted: false,
+    });
 
-    // Flatten and get unique topics
-    const allTopics = questions.flatMap((q) => q.topics);
-    const uniqueTopics = [...new Set(allTopics)].sort((a, b) =>
-      a.toLowerCase().localeCompare(b.toLowerCase())
-    );
+    uniqueTopics.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
     res.json(uniqueTopics);
   } catch (err) {
@@ -103,7 +100,7 @@ router.get("/random", async (req: Request, res: Response) => {
   }
 });
 
-// Add a question (Admin only - middleware should be added in main app)
+// Add a question (Admin only)
 router.post("/", async (req: Request, res: Response) => {
   try {
     const { title, description, difficulty, topics } = req.body;
@@ -161,7 +158,13 @@ router.post("/", async (req: Request, res: Response) => {
     await newQuestion.save();
     res.status(201).json(newQuestion);
   } catch (err) {
-    res.status(400).json({ message: "Invalid data" });
+    if (err instanceof Error) {
+      res.status(400).json({ message: "Invalid data", error: err.message });
+    } else {
+      res
+        .status(400)
+        .json({ message: "Invalid data", error: "An unknown error occurred." });
+    }
   }
 });
 
