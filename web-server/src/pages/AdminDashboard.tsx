@@ -20,6 +20,8 @@ import {
   Stack,
 } from "@mui/material";
 import { TbPlus, TbTrash, TbX, TbEdit, TbEye } from "react-icons/tb";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import {
   getAllQuestions,
   createQuestion,
@@ -30,7 +32,19 @@ import {
   UpdateQuestionData,
 } from "../services/questionService";
 
+type ChipColor =
+  | "default"
+  | "primary"
+  | "secondary"
+  | "error"
+  | "info"
+  | "success"
+  | "warning";
+type Difficulty = "easy" | "medium" | "hard";
+
 export default function AdminDashboard() {
+  const navigate = useNavigate();
+  const { isAdmin, profile } = useAuth();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +64,13 @@ export default function AdminDashboard() {
     topics: [],
   });
   const [topicInput, setTopicInput] = useState("");
+
+  // Secondary security check - redirect if not admin
+  useEffect(() => {
+    if (profile && !isAdmin) {
+      navigate("/home");
+    }
+  }, [profile, isAdmin, navigate]);
 
   useEffect(() => {
     fetchQuestions();
@@ -194,7 +215,7 @@ export default function AdminDashboard() {
     });
   };
 
-  const getDifficultyColor = (difficulty: string) => {
+  const getDifficultyColor = (difficulty: Difficulty): ChipColor => {
     switch (difficulty) {
       case "easy":
         return "success";
@@ -217,7 +238,14 @@ export default function AdminDashboard() {
           alignItems: "center",
         }}
       >
-        <Typography variant="h4">Admin Dashboard</Typography>
+        <Box>
+          <Typography variant="h4">Admin Dashboard</Typography>
+          {profile && (
+            <Typography variant="caption" color="text.secondary">
+              Logged in as: {profile.name} ({profile.role})
+            </Typography>
+          )}
+        </Box>
         <Button
           variant="contained"
           startIcon={<TbPlus />}
@@ -273,7 +301,7 @@ export default function AdminDashboard() {
                     </Typography>
                     <Chip
                       label={question.difficulty.toUpperCase()}
-                      color={getDifficultyColor(question.difficulty) as any}
+                      color={getDifficultyColor(question.difficulty)}
                       size="small"
                       sx={{ mb: 1 }}
                     />
@@ -492,7 +520,7 @@ export default function AdminDashboard() {
                 </Typography>
                 <Chip
                   label={selectedQuestion.difficulty.toUpperCase()}
-                  color={getDifficultyColor(selectedQuestion.difficulty) as any}
+                  color={getDifficultyColor(selectedQuestion.difficulty)}
                   size="small"
                 />
               </Box>
