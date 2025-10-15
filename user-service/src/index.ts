@@ -1,13 +1,16 @@
 import "dotenv/config";
 import express from "express";
+import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth";
 import userRoutes from "./routes/user";
 import { connectToDatabase, closeDatabaseConnection } from "./db/connection";
+import { initializeRefreshTokenIndexes } from "./db/refreshToken";
 
 const app = express();
 const port = process.env.PORT || 3002;
 
 app.use(express.json());
+app.use(cookieParser());
 
 // CORS allows web servers to grant browsers permission to access resources
 // from a different domain than the one the webpage was served from
@@ -45,6 +48,9 @@ app.get("/", (_req, res) => {
 async function startServer() {
   try {
     await connectToDatabase();
+
+    // Initialize refresh token indexes
+    await initializeRefreshTokenIndexes();
 
     app.listen(port, () => {
       console.log(`User service running at http://localhost:${port}`);
