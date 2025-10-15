@@ -14,17 +14,14 @@ const decodeTitle = (title: string): string => {
 };
 
 // Get all unique topics from non-deleted questions
-// IMPORTANT: This route must come before /:id routes to avoid matching "topics" as an ID
 router.get("/topics", async (req: Request, res: Response) => {
   try {
-    // Aggregate all topics from non-deleted questions
-    const questions = await Question.find({ isDeleted: false }, "topics");
+    // Db finds all unique topics from non-deteleted questions
+    const uniqueTopics = await Question.distinct("topics", {
+      isDeleted: false,
+    });
 
-    // Flatten and get unique topics
-    const allTopics = questions.flatMap((q) => q.topics);
-    const uniqueTopics = [...new Set(allTopics)].sort((a, b) =>
-      a.toLowerCase().localeCompare(b.toLowerCase())
-    );
+    uniqueTopics.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
     res.json(uniqueTopics);
   } catch (err) {
@@ -103,7 +100,75 @@ router.get("/random", async (req: Request, res: Response) => {
   }
 });
 
-// Add a question (Admin only - middleware should be added in main app)
+// Get a random question matching difficulty and topics
+// IMPORTANT: This route must come before /:id routes to avoid matching "random" as an ID
+router.get("/random", async (req: Request, res: Response) => {
+  try {
+    const { difficulty, topics } = req.query;
+
+    console.log("Random question request:", { difficulty, topics });
+
+    // Build query
+    const query: Record<string, any> = { isDeleted: false };
+
+    // Add difficulty filter if provided
+    if (difficulty) {
+      if (!["easy", "medium", "hard"].includes(difficulty as string)) {
+        return res.status(400).json({
+          message: "Difficulty must be one of 'easy', 'medium', or 'hard'",
+        });
+      }
+      query.difficulty = difficulty;
+    }
+
+    // Add topics filter if provided (intersection - question must have at least one of the topics)
+    if (topics) {
+      let topicArray: string[] = [];
+      if (Array.isArray(topics)) {
+        topicArray = topics.flatMap((t) =>
+          typeof t === "string" ? t.split(",") : []
+        );
+      } else if (typeof topics === "string") {
+        topicArray = topics.split(",");
+      }
+
+      // Only add filter if topics array is not empty
+      if (topicArray.length > 0) {
+        query.topics = { $in: topicArray };
+      }
+    }
+
+    console.log("Query for random question:", query);
+
+    // Find all matching questions
+    const matchingQuestions = await Question.find(query);
+
+    if (matchingQuestions.length === 0) {
+      return res.status(404).json({
+        message: "No questions found matching the specified criteria",
+      });
+    }
+
+    // Select a random question from matching questions
+    const randomIndex = Math.floor(Math.random() * matchingQuestions.length);
+    const selectedQuestion = matchingQuestions[randomIndex];
+
+    console.log(
+      `Selected random question: ${selectedQuestion.title} (${
+        randomIndex + 1
+      }/${matchingQuestions.length} matches)`
+    );
+
+    res.json(selectedQuestion);
+  } catch (err) {
+    console.error("Failed to fetch random question:", err);
+    res.status(500).json({
+      message: "Failed to fetch random question",
+    });
+  }
+});
+
+// Add a question (Admin only)
 router.post("/", async (req: Request, res: Response) => {
   try {
     const { title, description, difficulty, topics } = req.body;
@@ -134,9 +199,11 @@ router.post("/", async (req: Request, res: Response) => {
       topics.length === 0 ||
       !topics.every((topic) => typeof topic === "string" && topic.trim() !== "")
     ) {
-      return res.status(400).json({
-        message: "Topics must be an array of at least one non-empty string",
-      });
+      return res
+        .status(400)
+        .json({
+          message: "Topics must be an array of at least one non-empty string",
+        });
     }
 
     const existing = await Question.findOne({
@@ -159,7 +226,13 @@ router.post("/", async (req: Request, res: Response) => {
     await newQuestion.save();
     res.status(201).json(newQuestion);
   } catch (err) {
-    res.status(400).json({ message: "Invalid data" });
+    if (err instanceof Error) {
+      res.status(400).json({ message: "Invalid data", error: err.message });
+    } else {
+      res
+        .status(400)
+        .json({ message: "Invalid data", error: "An unknown error occurred." });
+    }
   }
 });
 
@@ -215,9 +288,11 @@ router.put("/:id", async (req: Request, res: Response) => {
           (topic) => typeof topic === "string" && topic.trim() !== ""
         )
       ) {
-        return res.status(400).json({
-          message: "Topics must be an array of at least one non-empty string",
-        });
+        return res
+          .status(400)
+          .json({
+            message: "Topics must be an array of at least one non-empty string",
+          });
       }
       question.topics = topics;
     }

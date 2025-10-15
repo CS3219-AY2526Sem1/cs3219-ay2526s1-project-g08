@@ -51,7 +51,6 @@ export async function findMatch(user: User): Promise<Match | undefined> {
         }, topics: ${matchedTopics.join(", ")}`
       );
       // Put users back in queue if no question found
-      // In production, you might want to notify users instead
       return undefined;
     }
 
