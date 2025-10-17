@@ -6,6 +6,8 @@ import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
+import CollaborationDemo from "./pages/CollaborationDemo";
+import CollaborativeSession from "./pages/CollaborativeSession";
 import Layout from "./components/Layout";
 import AuthCallback from "./pages/AuthCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -42,7 +44,23 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="collaboration"
+              element={
+                <ProtectedRoute>
+                  <CollaborationDemo />
+                </ProtectedRoute>
+              }
+            />
           </Route>
+          <Route
+            path="collaboration/:sessionId"
+            element={
+              <ProtectedRoute>
+                <CollaborativeSession />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </BrowserRouter>
     </AppTheme>
