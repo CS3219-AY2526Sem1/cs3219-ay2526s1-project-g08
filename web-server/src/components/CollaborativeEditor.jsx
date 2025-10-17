@@ -2,12 +2,14 @@ import { useEffect, useState, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import YjsCollaboration from '../services/yjsCollaboration';
 import './CollaborativeEditor.css';
+import { useNavigate } from 'react-router-dom';
 
 function CollaborativeEditor({ sessionId, authToken, language }) {
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [isConnected, setIsConnected] = useState(false);
   const editorRef = useRef(null);
   const yjsCollab = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     return () => {
@@ -56,6 +58,7 @@ function CollaborativeEditor({ sessionId, authToken, language }) {
   const handleLeaveSession = () => {
     if (window.confirm('Are you sure you want to leave this session?')) {
       yjsCollab.current.destroy();
+      navigate('/home');
     }
   };
 
