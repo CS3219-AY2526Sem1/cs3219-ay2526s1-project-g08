@@ -91,7 +91,8 @@ router.get("/random", async (req: Request, res: Response) => {
       }/${matchingQuestions.length} matches)`
     );
 
-    res.json(selectedQuestion);
+    // Return only the question ID for easy passing between services
+    res.json({ questionId: selectedQuestion._id });
   } catch (err) {
     console.error("Failed to fetch random question:", err);
     res.status(500).json({
@@ -100,70 +101,28 @@ router.get("/random", async (req: Request, res: Response) => {
   }
 });
 
-// Get a random question matching difficulty and topics
-// IMPORTANT: This route must come before /:id routes to avoid matching "random" as an ID
-router.get("/random", async (req: Request, res: Response) => {
+// Get a specific question by ID
+router.get("/:id", async (req: Request, res: Response) => {
   try {
-    const { difficulty, topics } = req.query;
+    const { id } = req.params;
 
-    console.log("Random question request:", { difficulty, topics });
-
-    // Build query
-    const query: Record<string, any> = { isDeleted: false };
-
-    // Add difficulty filter if provided
-    if (difficulty) {
-      if (!["easy", "medium", "hard"].includes(difficulty as string)) {
-        return res.status(400).json({
-          message: "Difficulty must be one of 'easy', 'medium', or 'hard'",
-        });
-      }
-      query.difficulty = difficulty;
+    if (!id || id.trim() === "") {
+      return res.status(400).json({ message: "Question ID is required" });
     }
 
-    // Add topics filter if provided (intersection - question must have at least one of the topics)
-    if (topics) {
-      let topicArray: string[] = [];
-      if (Array.isArray(topics)) {
-        topicArray = topics.flatMap((t) =>
-          typeof t === "string" ? t.split(",") : []
-        );
-      } else if (typeof topics === "string") {
-        topicArray = topics.split(",");
-      }
+    const question = await Question.findOne({ _id: id, isDeleted: false });
 
-      // Only add filter if topics array is not empty
-      if (topicArray.length > 0) {
-        query.topics = { $in: topicArray };
-      }
-    }
-
-    console.log("Query for random question:", query);
-
-    // Find all matching questions
-    const matchingQuestions = await Question.find(query);
-
-    if (matchingQuestions.length === 0) {
+    if (!question) {
       return res.status(404).json({
-        message: "No questions found matching the specified criteria",
+        message: `Question not found with ID: "${id}"`,
       });
     }
 
-    // Select a random question from matching questions
-    const randomIndex = Math.floor(Math.random() * matchingQuestions.length);
-    const selectedQuestion = matchingQuestions[randomIndex];
-
-    console.log(
-      `Selected random question: ${selectedQuestion.title} (${
-        randomIndex + 1
-      }/${matchingQuestions.length} matches)`
-    );
-
-    res.json(selectedQuestion);
+    res.json(question);
   } catch (err) {
-    console.error("Failed to fetch random question:", err);
+    console.error("Failed to fetch question by ID:", err);
     res.status(500).json({
-      message: "Failed to fetch random question",
+      message: "Failed to fetch question",
     });
   }
 });
