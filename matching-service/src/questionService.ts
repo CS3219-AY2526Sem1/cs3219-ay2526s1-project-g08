@@ -14,15 +14,15 @@ export interface Question {
 }
 
 /**
- * Fetch a random question matching the specified difficulty and topics
+ * Fetch a random question ID matching the specified difficulty and topics
  * @param difficulty - The difficulty level (easy, medium, hard)
  * @param topics - Array of topics to match (question must have at least one)
- * @returns A random question matching the criteria, or null if none found
+ * @returns A random question ID matching the criteria, or null if none found
  */
-export async function getRandomQuestion(
+export async function getRandomQuestionId(
   difficulty: string,
   topics: string[]
-): Promise<Question | null> {
+): Promise<string | null> {
   try {
     // Build query parameters
     const params = new URLSearchParams();
@@ -34,7 +34,7 @@ export async function getRandomQuestion(
     }
 
     const url = `${QUESTION_SERVICE_URL}/api/questions/random?${params.toString()}`;
-    console.log(`Fetching random question from: ${url}`);
+    console.log(`Fetching random question ID from: ${url}`);
 
     const response = await fetch(url);
 
@@ -46,13 +46,11 @@ export async function getRandomQuestion(
       throw new Error(`Question service responded with ${response.status}`);
     }
 
-    const question: Question = await response.json();
-    console.log(
-      `Retrieved question: ${question.title} (${question.difficulty})`
-    );
-    return question;
+    const data: { questionId: string } = await response.json();
+    console.log(`Retrieved question ID: ${data.questionId}`);
+    return data.questionId;
   } catch (error) {
-    console.error("Error fetching random question:", error);
+    console.error("Error fetching random question ID:", error);
     return null;
   }
 }
