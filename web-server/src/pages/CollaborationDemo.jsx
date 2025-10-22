@@ -6,6 +6,7 @@ function CollaborationDemo() {
   const navigate = useNavigate();
   const { getToken, isLoggedIn, user, isLoading } = useAuth();
   const [language, setLanguage] = useState('python');
+  const [questionId, setQuestionId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
 
   // Redirect to login if not authenticated
@@ -30,7 +31,7 @@ function CollaborationDemo() {
       }
 
       // Create a new session through your API
-      const response = await fetch('http://localhost:8080/api/collaboration/sessions', {
+      const response = await fetch('http://localhost:3004/api/collaboration/sessions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -38,8 +39,8 @@ function CollaborationDemo() {
         },
         body: JSON.stringify({
           participants: [user?.userId, 'demo-user-2'],
-          questionId: 'demo-question-123',
-          difficulty: 'medium',
+          questionId: questionId,
+          difficulty: 'easy',
           topic: 'algorithms',
           language: language
         })
@@ -85,6 +86,24 @@ function CollaborationDemo() {
           <option value="java">Java</option>
           <option value="cpp">C++</option>
         </select>
+      </div>
+
+
+      <div style={{ marginBottom: '20px' }}>
+        <label style={{ display: 'block', marginBottom: '5px' }}>
+          Question Id:
+        </label>
+        <input
+          type="text"
+          value={questionId}
+          onChange={(e) => setQuestionId(e.target.value)}
+          style={{
+            padding: '10px',
+            width: '100%',
+            border: '1px solid #ccc',
+            borderRadius: '4px'
+          }}
+        />
       </div>
 
       <div style={{ display: 'flex', gap: '10px' }}>

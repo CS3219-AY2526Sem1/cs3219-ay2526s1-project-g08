@@ -7,7 +7,8 @@ function CollaborativeSession() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const { getToken, isLoggedIn, isLoading } = useAuth();
-  const [language, setLanguage] = useState('javascript');
+  const [questionId, setQuestionId] = useState('');
+  const [language, setLanguage] = useState('python');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [authToken, setAuthToken] = useState(null);
@@ -37,7 +38,7 @@ function CollaborativeSession() {
         // Store the token in state for use with CollaborativeEditor
         setAuthToken(token);
 
-        const response = await fetch(`http://localhost:8080/api/collaboration/sessions/${sessionId}`, {
+        const response = await fetch(`http://localhost:3004/api/collaboration/sessions/${sessionId}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -45,6 +46,7 @@ function CollaborativeSession() {
 
         if (response.ok) {
           const data = await response.json();
+          setQuestionId(data.data.questionId);
           setLanguage(data.data.language);
         } else if (response.status === 404) {
           setError('Session not found');
@@ -101,6 +103,7 @@ function CollaborativeSession() {
     <CollaborativeEditor 
       sessionId={sessionId}
       authToken={authToken}
+      questionId={questionId}
       language={language}
     />
   );
