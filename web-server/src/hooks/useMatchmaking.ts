@@ -4,7 +4,8 @@ import {
   joinQueue,
   closeWebSocket,
 } from "../services/websocket";
-import { Match, WebSocketMessage } from "../types";
+import { getQuestionById } from "../services/questionService";
+import { Match, Question, WebSocketMessage } from "../types";
 
 export const useMatchmaking = (
   userId: string,
@@ -14,6 +15,7 @@ export const useMatchmaking = (
   timeout: number = 60 //timeout afer 60 seconds
 ) => {
   const [match, setMatch] = useState<Match | null>(null);
+  const [question, setQuestion] = useState<Question | null>(null);
   const [isFinding, setIsFinding] = useState(false);
   const [timeProgress, setTimeProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -22,15 +24,27 @@ export const useMatchmaking = (
 
   const findMatch = async () => {
     setMatch(null);
+    setQuestion(null);
     setIsFinding(true);
     setTimeProgress(0);
     setError(null);
 
     try {
-      await connectWebSocket((msg: WebSocketMessage) => {
+      await connectWebSocket(async (msg: WebSocketMessage) => {
         if (msg.event === "match_found") {
-          stopSearching(); //need to be initialised
+          stopSearching();
           setMatch(msg.match);
+          
+          // Fetch the question details using the questionId
+          if (msg.match.questionId) {
+            try {
+              const questionData = await getQuestionById(msg.match.questionId);
+              setQuestion(questionData);
+            } catch (err) {
+              console.error("Error fetching question:", err);
+              setError("Failed to load question details");
+            }
+          }
         }
       });
 
@@ -67,6 +81,7 @@ export const useMatchmaking = (
 
   const resetMatch = () => {
     setMatch(null);
+    setQuestion(null);
     setIsFinding(false);
     setTimeProgress(0);
     setError(null);
@@ -89,5 +104,5 @@ export const useMatchmaking = (
     };
   }, []); // Empty dependency array - only runs on mount/unmount
 
-  return { match, findMatch, isFinding, timeProgress, error, resetMatch };
+  return { match, question, findMatch, isFinding, timeProgress, error, resetMatch };
 };

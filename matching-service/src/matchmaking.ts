@@ -1,7 +1,7 @@
 import { getQueueUsers, leaveQueue } from "./queue";
 import { Match, User } from "./types";
 import { redis } from "./redis";
-import { getRandomQuestion } from "./questionService";
+import { getRandomQuestionId } from "./questionService";
 
 // Find a match for the given user based on difficulty, language, and topics
 export async function findMatch(user: User): Promise<Match | undefined> {
@@ -41,10 +41,13 @@ export async function findMatch(user: User): Promise<Match | undefined> {
     await leaveQueue(user.id);
     await leaveQueue(u.id);
 
-    // Fetch a random question matching the criteria
-    const question = await getRandomQuestion(user.difficulty, matchedTopics);
+    // Fetch a random question ID matching the criteria
+    const questionId = await getRandomQuestionId(
+      user.difficulty,
+      matchedTopics
+    );
 
-    if (!question) {
+    if (!questionId) {
       console.error(
         `No question found for difficulty: ${
           user.difficulty
@@ -59,13 +62,7 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       id: matchId,
       users: [user.id, u.id],
       status: "pending",
-      question: {
-        _id: question._id,
-        title: question.title,
-        description: question.description,
-        difficulty: question.difficulty,
-        topics: question.topics,
-      },
+      questionId: questionId,
       difficulty: user.difficulty,
       language: user.language,
       matchedTopics,
@@ -75,15 +72,14 @@ export async function findMatch(user: User): Promise<Match | undefined> {
     await redis.hset(matchId, {
       users: JSON.stringify(match.users),
       status: match.status,
-      questionId: question._id,
-      questionTitle: question.title,
+      questionId: questionId,
       difficulty: match.difficulty,
       language: match.language,
       matchedTopics: JSON.stringify(matchedTopics),
     });
     await redis.expire(matchId, 15);
 
-    console.log(`Match created with question: ${question.title}`);
+    console.log(`Match created with question ID: ${questionId}`);
 
     return match;
   }
