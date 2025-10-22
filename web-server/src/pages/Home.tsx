@@ -26,7 +26,7 @@ export default function Home() {
   const [loadingTopics, setLoadingTopics] = useState(true);
   const [lastTopicRefresh, setLastTopicRefresh] = useState<Date | null>(null);
 
-  const { match, findMatch, isFinding, timeProgress, error, resetMatch } =
+  const { match, question, findMatch, isFinding, timeProgress, error, resetMatch } =
     useMatchmaking(userId, difficulty, language, selectedTopics, 60);
 
   // Fetch available topics from database on component mount and refresh periodically
@@ -226,7 +226,7 @@ export default function Home() {
           <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
             Match Found! Users: {match.users.join(", ")}
           </Typography>
-          {match.question && (
+          {question ? (
             <Box
               sx={{ mt: 2, p: 2, bgcolor: "background.paper", borderRadius: 1 }}
             >
@@ -234,21 +234,21 @@ export default function Home() {
                 variant="subtitle1"
                 sx={{ fontWeight: "bold", mb: 1 }}
               >
-                📝 Selected Question: {match.question.title}
+                📝 Selected Question: {question.title}
               </Typography>
               <Typography
                 variant="body2"
                 color="text.secondary"
                 sx={{ mb: 0.5 }}
               >
-                <strong>Difficulty:</strong> {match.question.difficulty}
+                <strong>Difficulty:</strong> {question.difficulty}
               </Typography>
               <Typography
                 variant="body2"
                 color="text.secondary"
                 sx={{ mb: 0.5 }}
               >
-                <strong>Topics:</strong> {match.question.topics.join(", ")}
+                <strong>Topics:</strong> {question.topics.join(", ")}
               </Typography>
               {match.matchedTopics && match.matchedTopics.length > 0 && (
                 <Typography variant="body2" color="text.secondary">
@@ -257,6 +257,10 @@ export default function Home() {
                 </Typography>
               )}
             </Box>
+          ) : (
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Loading question details...
+            </Typography>
           )}
         </Alert>
       )}
