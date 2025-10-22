@@ -91,7 +91,7 @@ function CollaborationDemo() {
 
       <div style={{ marginBottom: '20px' }}>
         <label style={{ display: 'block', marginBottom: '5px' }}>
-          Question Id:
+          Question ID:
         </label>
         <input
           type="text"

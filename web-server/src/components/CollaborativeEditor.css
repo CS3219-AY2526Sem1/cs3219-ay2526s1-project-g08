@@ -87,27 +87,20 @@
   font-size: 12px;
   font-weight: bold;
   text-transform: uppercase;
+  color: white;
+  background-color: #6c757d; /* For unknown difficulties */
 }
 
 .difficulty.easy {
   background-color: #4caf50;
-  color: white;
 }
 
 .difficulty.medium {
   background-color: #ff9800;
-  color: white;
 }
 
 .difficulty.hard {
   background-color: #f44336;
-  color: white;
-}
-
-/* Fallback for unknown difficulties */
-.difficulty {
-  background-color: #6c757d;
-  color: white;
 }
 
 .topics {

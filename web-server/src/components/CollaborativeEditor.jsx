@@ -56,7 +56,7 @@ function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
         yjsCollab.current.destroy();
       }
     };
-  }, [authToken]);
+  }, [questionId]);
   
   const handleSessionState = (data) => {
     console.log('Received initial session state');
