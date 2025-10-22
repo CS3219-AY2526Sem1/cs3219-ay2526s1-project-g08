@@ -54,7 +54,7 @@ services:
         build: ./collaboration-service
         container_name: collaboration-service
         ports:
-            - "8080:8080"
+            - "3004:3004"
         depends_on:
             - mongo
         environment:
