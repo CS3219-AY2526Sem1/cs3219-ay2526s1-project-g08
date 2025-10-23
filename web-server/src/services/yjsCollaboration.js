@@ -15,7 +15,7 @@ class YjsCollaboration {
     this.ydoc = new Y.Doc();
     const ytext = this.ydoc.getText('code');
 
-    const socketUrl = 'ws://localhost:8080';
+    const socketUrl = 'ws://localhost:3004';
     this.socket = io(socketUrl, {
       auth: { token: authToken },
       query: { sessionId: sessionId },
