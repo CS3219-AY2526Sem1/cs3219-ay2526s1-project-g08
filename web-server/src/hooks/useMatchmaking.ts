@@ -3,6 +3,8 @@ import {
   connectWebSocket,
   joinQueue,
   closeWebSocket,
+  acceptMatch as sendAccept,
+  declineMatch as sendDecline,
 } from "../services/websocket";
 import { getQuestionById } from "../services/questionService";
 import { Match, Question, WebSocketMessage } from "../types";
@@ -18,6 +20,7 @@ export const useMatchmaking = (
   const [question, setQuestion] = useState<Question | null>(null);
   const [isFinding, setIsFinding] = useState(false);
   const [timeProgress, setTimeProgress] = useState(0);
+  const [isAccepting, setIsAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const interval = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -32,7 +35,8 @@ export const useMatchmaking = (
     try {
       await connectWebSocket(async (msg: WebSocketMessage) => {
         if (msg.event === "match_found") {
-          stopSearching();
+          stopSearching(); // need to be initialised
+          setIsAccepting(false); //to clear any state 
           setMatch(msg.match);
           
           // Fetch the question details using the questionId
@@ -45,6 +49,17 @@ export const useMatchmaking = (
               setError("Failed to load question details");
             }
           }
+        }
+        if (msg.event === "match_accepted") {
+          setMatch(msg.match);
+          setIsAccepting(false);
+        }
+        if (msg.event === "match_declined") {
+          console.log("Match declined:", msg.match.id);
+          setMatch(null);
+          setError("Match was declined by peer. Please find again");
+          setIsAccepting(false);
+          stopSearching();
         }
       });
 
@@ -79,12 +94,36 @@ export const useMatchmaking = (
     setIsFinding(false);
   };
 
+  const acceptMatch = async () => {
+    if (!match) return;
+    setIsAccepting(true);
+    try {
+      await sendAccept(match.id);
+    } catch (e) {
+      setError("Failed to accept match");
+      setIsAccepting(false);
+    }
+  };
+
+  const declineMatch = async () => {
+    if (!match) return;
+    try {
+      await sendDecline(match.id);
+      setMatch(null);
+      stopSearching();
+    } catch (e) {
+      setError("Failed to decline match");
+    }
+  };
+
   const resetMatch = () => {
     setMatch(null);
     setQuestion(null);
     setIsFinding(false);
+    setIsAccepting(false);
     setTimeProgress(0);
     setError(null);
+    closeWebSocket();
   };
 
   useEffect(() => {
@@ -104,5 +143,5 @@ export const useMatchmaking = (
     };
   }, []); // Empty dependency array - only runs on mount/unmount
 
-  return { match, question, findMatch, isFinding, timeProgress, error, resetMatch };
+  return { match, question, findMatch, acceptMatch, declineMatch, isFinding, isAccepting, timeProgress, error, resetMatch };
 };
