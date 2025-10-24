@@ -31,7 +31,7 @@ export default function Home() {
   const [lastTopicRefresh, setLastTopicRefresh] = useState<Date | null>(null);
 
   const { match, question,  findMatch, acceptMatch, declineMatch, isFinding, isAccepting, timeProgress, error, resetMatch } =
-    useMatchmaking(userId, difficulty, language, ["arrays"], 60);
+    useMatchmaking(userId, difficulty, language, selectedTopics, 60);
 
   // Fetch available topics from database on component mount and refresh periodically
   useEffect(() => {
@@ -231,19 +231,20 @@ export default function Home() {
             <Button onClick={declineMatch} variant="contained" sx={{ backgroundColor: "rgba(244, 67, 54, 0.4)", color: "#fff", "&:hover": { backgroundColor: "rgba(244, 67, 54, 0.5)" } }}>
               Decline
             </Button>
-            <Button onClick={acceptMatch} variant="contained" disabled={isAccepting}>
+            <Button onClick={acceptMatch} variant="contained" disabled={isAccepting || !match || match.status !== "pending"}>
               {isAccepting ? "Accepting..." : "Accept"}
             </Button>
           </DialogActions>
         </Dialog>
+      )}
       {selectedTopics.length === 0 && !isFinding && !match && (
         <Alert severity="warning" sx={{ mt: 2 }}>
           No topic selected — you may be matched with any category.
         </Alert>
       )}
 
-      {match && (
-        <Alert severity="success">
+      {match && match.status !== "pending" && (
+        <Alert severity="success" sx={{ mt: 2 }}>
           <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
             Match Found! Users: {match.users.join(", ")}
           </Typography>

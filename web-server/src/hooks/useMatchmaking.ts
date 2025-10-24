@@ -36,6 +36,7 @@ export const useMatchmaking = (
       await connectWebSocket(async (msg: WebSocketMessage) => {
         if (msg.event === "match_found") {
           stopSearching(); // need to be initialised
+          setIsAccepting(false); //to clear any state 
           setMatch(msg.match);
           
           // Fetch the question details using the questionId
@@ -51,11 +52,13 @@ export const useMatchmaking = (
         }
         if (msg.event === "match_accepted") {
           setMatch(msg.match);
+          setIsAccepting(false);
         }
         if (msg.event === "match_declined") {
           console.log("Match declined:", msg.match.id);
           setMatch(null);
           setError("Match was declined by peer. Please find again");
+          setIsAccepting(false);
           stopSearching();
         }
       });
