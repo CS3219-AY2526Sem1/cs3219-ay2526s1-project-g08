@@ -6,13 +6,24 @@ export interface User {
   topics: string[];
 }
 
+export interface Question {
+  _id: string;
+  title: string;
+  description: string;
+  difficulty: "easy" | "medium" | "hard";
+  topics: string[];
+}
+
 export interface Match {
   id: string;
   users: string[];
   status: "pending" | "accepted" | "declined";
-  difficulty?: string;
   topics?: string[];
+  //status: string;
+  questionId?: string; // Just the question ID now
+  difficulty?: string;
   language?: string;
+  matchedTopics?: string[];
 }
 
 export interface MatchFoundMessage {

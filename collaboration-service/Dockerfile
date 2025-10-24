@@ -12,7 +12,7 @@ RUN npm install
 COPY . .
 
 # Expose ports
-EXPOSE 8080
+EXPOSE 3004
 
 # Development command with nodemon for hot reload
 CMD ["npm", "run", "dev"]

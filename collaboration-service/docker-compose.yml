@@ -3,7 +3,7 @@ services:
     build: .
     container_name: collaboration-service
     ports:
-      - "8080:8080"    # API and WebSocket port
+      - "3004:3004"    # API and WebSocket port
     volumes:
       - .:/app         # Mount source code for hot reload
       - /app/node_modules  # Don't overwrite node_modules

@@ -43,31 +43,57 @@ router.get("/callback", async (req, res) => {
 
     // Store/update user in MongoDB
     const db = await getDb();
-    await db
-      .collection("users")
-      .updateOne(
-        { userId: githubUser.login },
-        { $set: { name: githubUser.name || githubUser.login } },
-        { upsert: true }
-      );
+    await db.collection("users").updateOne(
+      { userId: githubUser.login },
+      {
+        $set: { name: githubUser.name || githubUser.login },
+        $setOnInsert: { role: "user" }, // Default role for new users
+      },
+      { upsert: true }
+    );
     console.log("User stored/updated in DB:", {
       userId: githubUser.login,
       name: githubUser.name,
     });
 
-    // Generate JWT
-    const jwtToken = signJwt({ userId: githubUser.login });
+    // Fetch user from DB to get role
+    const user = await db
+      .collection("users")
+      .findOne({ userId: githubUser.login });
+    const userRole = user?.role || "user";
+
+    // Generate JWT with role
+    const jwtToken = signJwt({
+      userId: githubUser.login,
+      role: userRole,
+    });
 
     res.cookie("token", jwtToken, {
       httpOnly: true,
       secure: false, // might be https in production
       sameSite: "lax",
       maxAge: 1000 * 60 * 60 * 24, // 1 day
+      path: "/",
     });
 
-    res.redirect("http://localhost:3000/home");
+    console.log("✓ User authenticated:", githubUser.login);
+    console.log("✓ Cookie set with token");
+    console.log(
+      "✓ Redirecting to:",
+      `http://localhost:3000/auth/callback?userId=${
+        githubUser.login
+      }&name=${encodeURIComponent(githubUser.name || githubUser.login)}`
+    );
+
+    // Redirect to frontend callback with user info as URL params
+    // The frontend will handle navigation after receiving the data
+    res.redirect(
+      `http://localhost:3000/auth/callback?userId=${
+        githubUser.login
+      }&name=${encodeURIComponent(githubUser.name || githubUser.login)}`
+    );
   } catch (err) {
-    console.error(err);
+    console.error("OAuth error:", err);
     res.status(500).send("OAuth error");
   }
 });
