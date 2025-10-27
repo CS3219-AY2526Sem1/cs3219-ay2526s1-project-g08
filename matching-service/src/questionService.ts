@@ -54,3 +54,34 @@ export async function getRandomQuestionId(
     return null;
   }
 }
+
+/**
+ * Fetch question details by ID
+ * @param questionId - The question ID
+ * @returns The full question object, or null if not found
+ */
+export async function getQuestionById(
+  questionId: string
+): Promise<Question | null> {
+  try {
+    const url = `${QUESTION_SERVICE_URL}/api/questions/${questionId}`;
+    console.log(`Fetching question details from: ${url}`);
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.log(`Question ${questionId} not found`);
+        return null;
+      }
+      throw new Error(`Question service responded with ${response.status}`);
+    }
+
+    const question: Question = await response.json();
+    console.log(`Retrieved question: ${question.title} with topics: ${question.topics.join(", ")}`);
+    return question;
+  } catch (error) {
+    console.error("Error fetching question by ID:", error);
+    return null;
+  }
+}
