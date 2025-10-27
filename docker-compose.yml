@@ -59,7 +59,7 @@ services:
             - mongo
         environment:
             MONGODB_URI: mongodb://root:password@mongo:27017/collaboration_service?authSource=admin
-            JWT_SECRET: ${JWT_SECRET:-supersecret}
+            JWT_SECRET: ${JWT_SECRET:-jwtsecret}
             NODE_ENV: development
             FRONTEND_URL: http://localhost:3000
         volumes:
@@ -76,9 +76,6 @@ services:
         environment:
             MONGO_URI: mongodb://root:password@mongo:27017/question_service?authSource=admin
             MONGO_DB_NAME: question_service
-        volumes:
-            - ./question-service:/app
-            - /app/node_modules
 
 volumes:
     mongo-data:
