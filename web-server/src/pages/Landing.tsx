@@ -1,9 +1,18 @@
 import { Box, Button, Typography, Container } from "@mui/material";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Landing() {
+  const { isLoggedIn } = useAuth();
+
   const handleLogin = () => {
     window.location.href = "http://localhost:3002/auth/github";
   };
+
+  // Redirect to home if already logged in
+  if (isLoggedIn) {
+    return <Navigate to="/home" replace />;
+  }
 
   return (
     <Box
