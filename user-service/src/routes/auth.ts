@@ -2,6 +2,7 @@ import express from "express";
 import { CLIENT_ID, CLIENT_SECRET } from "../config/github";
 import { signAccessToken } from "../utils/jwt";
 import { getDb } from "../utils/mongo";
+import { parseExpiry } from "../utils/expiry";
 import {
   storeRefreshToken,
   verifyRefreshToken,
@@ -78,30 +79,11 @@ router.get("/callback", async (req, res) => {
     const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || "1h";
     const refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY || "30d";
 
-    // Convert expiry to milliseconds
-    const parseExpiry = (expiry: string) => {
-      const match = expiry.match(/^(\d+)(s|m|h|d)$/);
-      if (!match) return 30 * 24 * 60 * 60 * 1000; // default 30 days
-
-      const value = parseInt(match[1]);
-      const unit = match[2];
-
-      switch (unit) {
-        case "s":
-          return value * 1000;
-        case "m":
-          return value * 60 * 1000;
-        case "h":
-          return value * 60 * 60 * 1000;
-        case "d":
-          return value * 24 * 60 * 60 * 1000;
-        default:
-          return 30 * 24 * 60 * 60 * 1000;
-      }
-    };
-
-    const accessTokenMs = parseExpiry(accessTokenExpiry);
-    const refreshTokenMs = parseExpiry(refreshTokenExpiry);
+    const accessTokenMs = parseExpiry(accessTokenExpiry, 60 * 60 * 1000); // default 1 hour
+    const refreshTokenMs = parseExpiry(
+      refreshTokenExpiry,
+      30 * 24 * 60 * 60 * 1000
+    ); // default 30 days
     const refreshTokenDays = refreshTokenMs / (24 * 60 * 60 * 1000);
 
     // Generate and store refresh token (long-lived)
@@ -219,33 +201,14 @@ router.post("/refresh", async (req, res) => {
 
     // Parse access token expiry from environment
     const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || "1h";
-    const parseExpiry = (expiry: string) => {
-      const match = expiry.match(/^(\d+)(s|m|h|d)$/);
-      if (!match) return 60 * 60 * 1000; // default 1 hour
-
-      const value = parseInt(match[1]);
-      const unit = match[2];
-
-      switch (unit) {
-        case "s":
-          return value * 1000;
-        case "m":
-          return value * 60 * 1000;
-        case "h":
-          return value * 60 * 60 * 1000;
-        case "d":
-          return value * 24 * 60 * 60 * 1000;
-        default:
-          return 60 * 60 * 1000;
-      }
-    };
+    const accessTokenMs = parseExpiry(accessTokenExpiry, 60 * 60 * 1000); // default 1 hour
 
     // Set new access token cookie
     res.cookie("token", newAccessToken, {
       httpOnly: true,
       secure: false,
       sameSite: "lax",
-      maxAge: parseExpiry(accessTokenExpiry), // Use dynamic expiry
+      maxAge: accessTokenMs, // Use dynamic expiry
       path: "/",
     });
 
