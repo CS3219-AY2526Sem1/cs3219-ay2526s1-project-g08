@@ -37,7 +37,7 @@ describe('Session API', () => {
         participants: [userId1, userId2],
         questionId: 'question-1',
         difficulty: 'medium',
-        topic: 'algorithms',
+        topics: ['algorithms'],
         language: 'python'
       };
 
@@ -61,7 +61,7 @@ describe('Session API', () => {
         participants: [userId1], // Need 2 participants
         questionId: 'question-1',
         difficulty: 'medium',
-        topic: 'algorithms',
+        topics: ['algorithms'],
         language: 'python'
       };
 
@@ -79,7 +79,7 @@ describe('Session API', () => {
         participants: [userId1, userId2],
         questionId: 'question-1',
         difficulty: 'medium',
-        topic: 'algorithms',
+        topics: ['algorithms'],
         // Missing language
       };
 
@@ -97,7 +97,7 @@ describe('Session API', () => {
         participants: [userId1, userId2], 
         questionId: 'question-1',
         difficulty: 'impossible', // Invalid difficulty
-        topic: 'algorithms',
+        topics: ['algorithms'],
         language: 'python'
       };
 
@@ -117,7 +117,7 @@ describe('Session API', () => {
         participants: [userId1, 'other-user'],
         questionId: 'question-1',
         difficulty: 'easy',
-        topic: 'arrays',
+        topics: ['arrays'],
         language: 'javascript',
       });
       await existingSession.save();
@@ -126,7 +126,7 @@ describe('Session API', () => {
         participants: [userId1, userId2],
         questionId: 'question-2',
         difficulty: 'medium',
-        topic: 'algorithms',
+        topics: ['algorithms'],
         language: 'python'
       };
 
@@ -149,7 +149,7 @@ describe('Session API', () => {
         participants: [userId1, userId2],
         questionId: 'question-1',
         difficulty: 'medium',
-        topic: 'algorithms',
+        topics: ['algorithms'],
         language: 'python'
       });
       await session.save();
@@ -163,7 +163,7 @@ describe('Session API', () => {
       expect(response.body.data.participants).toEqual([userId1, userId2]);
       expect(response.body.data.questionId).toBe('question-1');
       expect(response.body.data.difficulty).toBe('medium');
-      expect(response.body.data.topic).toBe('algorithms');
+      expect(response.body.data.topics).toEqual(['algorithms']);
       expect(response.body.data.language).toBe('python');
     });
 
@@ -186,7 +186,7 @@ describe('Session API', () => {
         participants: [userId1, userId2],
         questionId: 'question-1',
         difficulty: 'medium',
-        topic: 'algorithms',
+        topics: ['algorithms'],
         language: 'python'
       });
       await session.save();

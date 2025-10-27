@@ -17,12 +17,12 @@ const createSessionSchema = Joi.object({
   participants: Joi.array().items(Joi.string()).min(2).max(2).required(),
   questionId: Joi.string().required(),
   difficulty: Joi.string().valid('easy', 'medium', 'hard').required(),
-  topic: Joi.string().required(),
+  topics: Joi.array().items(Joi.string()).min(1).required(),
   language: Joi.string().required()
 });
 
 // Create new collaboration session
-router.post('/sessions', authenticateToken, async (req, res) => {
+router.post('/sessions', async (req, res) => {
   try {
     const { error, value } = createSessionSchema.validate(req.body);
     if (error) {
@@ -93,7 +93,7 @@ router.get('/sessions/:sessionId', authenticateToken, async (req, res) => {
         participants: session.participants,
         questionId: session.questionId,
         difficulty: session.difficulty,
-        topic: session.topic,
+        topics: session.topics,
         language: session.language,
         connectedUsers: session.connectedUsers.map(u => u.userId),
       }
@@ -160,7 +160,7 @@ router.get('/user/session', authenticateToken, async (req, res) => {
         participants: session.participants,
         questionId: session.questionId,
         difficulty: session.difficulty,
-        topic: session.topic,
+        topics: session.topics,
         language: session.language,
         connectedUsers: session.connectedUsers.map(u => u.userId),
       } : null
