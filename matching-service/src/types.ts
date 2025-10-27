@@ -29,4 +29,5 @@ export interface Match {
   difficulty: string;
   language: string;
   matchedTopics: string[]; // The intersection of topics that matched
+  sessionId: string;
 }

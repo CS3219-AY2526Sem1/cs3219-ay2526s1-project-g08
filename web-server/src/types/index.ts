@@ -24,6 +24,7 @@ export interface Match {
   difficulty?: string;
   language?: string;
   matchedTopics?: string[];
+  sessionId: string;
 }
 
 export interface MatchFoundMessage {

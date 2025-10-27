@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 
 class SessionService {
   // Create new collaboration session
-  async createSession({ participants, questionId, difficulty, topic, language }) {
+  async createSession({ participants, questionId, difficulty, topics, language }) {
     try {
       // Check if any participant already has an active session
       for (const userId of participants) {
@@ -19,7 +19,7 @@ class SessionService {
         participants,
         questionId,
         difficulty,
-        topic,
+        topics,
         language,
       });
 

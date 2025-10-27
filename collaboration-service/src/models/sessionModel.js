@@ -20,10 +20,11 @@ const sessionSchema = new mongoose.Schema({
     enum: ['easy', 'medium', 'hard'],
     required: true
   },
-  topic: {
+  // common topics for matched users
+  topics: [{
     type: String,
     required: true
-  },
+  }],
   language: {
     type: String,
     required: true
