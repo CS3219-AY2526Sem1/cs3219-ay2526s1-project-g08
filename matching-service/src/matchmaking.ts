@@ -1,7 +1,7 @@
 import { getQueueUsers, leaveQueue } from "./queue";
 import { Match, User } from "./types";
 import { redis } from "./redis";
-import { getRandomQuestionId } from "./questionService";
+import { getRandomQuestionId, getQuestionById } from "./questionService";
 
 // Find a match for the given user based on difficulty, language, and topics
 export async function findMatch(user: User): Promise<Match | undefined> {
@@ -57,6 +57,24 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       return undefined;
     }
 
+    // Determine session topics:
+    // - If both users had no preferences (matchedTopics is empty), use the question's actual topics
+    // - Otherwise, use the matchedTopics from user preferences
+    let sessionTopics = matchedTopics;
+    
+    if (matchedTopics.length === 0) {
+      // Both users selected no preferences - fetch question details to get its topics
+      const question = await getQuestionById(questionId);
+      
+      if (!question) {
+        console.error(`Failed to fetch question details for ${questionId}`);
+        return undefined;
+      }
+      
+      sessionTopics = question.topics;
+      console.log(`Using question's topics for session: ${sessionTopics.join(", ")}`);
+    }
+
     const matchId = `match:${Date.now()}`;
     const match: Match = {
       id: matchId,
@@ -65,7 +83,7 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       questionId: questionId,
       difficulty: user.difficulty,
       language: user.language,
-      matchedTopics: matchedTopics,
+      matchedTopics: sessionTopics,
       sessionId: "" // Placeholder, will be set after session creation
 
     };
@@ -86,7 +104,7 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       questionId: questionId,
       difficulty: match.difficulty,
       language: match.language,
-      matchedTopics: JSON.stringify(matchedTopics),
+      matchedTopics: JSON.stringify(sessionTopics),
       sessionId: sessionId
     });
     await redis.expire(matchId, 15);
