@@ -33,7 +33,7 @@ router.get("/topics", async (req: Request, res: Response) => {
 });
 
 // Get a random question matching difficulty and topics
-// IMPORTANT: This route must come before /:id routes to avoid matching "random" as an ID
+// This route must come before /:id routes to avoid matching "random" as an ID
 router.get("/random", async (req: Request, res: Response) => {
   try {
     const { difficulty, topics } = req.query;
@@ -43,17 +43,21 @@ router.get("/random", async (req: Request, res: Response) => {
     // Build query
     const query: Record<string, any> = { isDeleted: false };
 
-    // Add difficulty filter if provided
-    if (difficulty) {
-      if (!["easy", "medium", "hard"].includes(difficulty as string)) {
-        return res.status(400).json({
-          message: "Difficulty must be one of 'easy', 'medium', or 'hard'",
-        });
-      }
-      query.difficulty = difficulty;
+    // Validate and add difficulty filter (required)
+    if (!difficulty) {
+      return res.status(400).json({
+        message: "Difficulty parameter is required",
+      });
     }
 
-    // Add topics filter if provided (intersection - question must have at least one of the topics)
+    if (!["easy", "medium", "hard"].includes(difficulty as string)) {
+      return res.status(400).json({
+        message: "Difficulty must be one of 'easy', 'medium', or 'hard'",
+      });
+    }
+    query.difficulty = difficulty;
+
+    // Add topics filter if provided (optional - intersection: question must have at least one of the topics)
     if (topics) {
       let topicArray: string[] = [];
       if (Array.isArray(topics)) {
@@ -91,11 +95,38 @@ router.get("/random", async (req: Request, res: Response) => {
       }/${matchingQuestions.length} matches)`
     );
 
-    res.json(selectedQuestion);
+    // Return only the question ID for easy passing between services
+    res.json({ questionId: selectedQuestion._id });
   } catch (err) {
     console.error("Failed to fetch random question:", err);
     res.status(500).json({
       message: "Failed to fetch random question",
+    });
+  }
+});
+
+// Get a specific question by ID
+router.get("/:id", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id || id.trim() === "") {
+      return res.status(400).json({ message: "Question ID is required" });
+    }
+
+    const question = await Question.findOne({ _id: id, isDeleted: false });
+
+    if (!question) {
+      return res.status(404).json({
+        message: `Question not found with ID: "${id}"`,
+      });
+    }
+
+    res.json(question);
+  } catch (err) {
+    console.error("Failed to fetch question by ID:", err);
+    res.status(500).json({
+      message: "Failed to fetch question",
     });
   }
 });
@@ -131,11 +162,9 @@ router.post("/", async (req: Request, res: Response) => {
       topics.length === 0 ||
       !topics.every((topic) => typeof topic === "string" && topic.trim() !== "")
     ) {
-      return res
-        .status(400)
-        .json({
-          message: "Topics must be an array of at least one non-empty string",
-        });
+      return res.status(400).json({
+        message: "Topics must be an array of at least one non-empty string",
+      });
     }
 
     const existing = await Question.findOne({
@@ -220,11 +249,9 @@ router.put("/:id", async (req: Request, res: Response) => {
           (topic) => typeof topic === "string" && topic.trim() !== ""
         )
       ) {
-        return res
-          .status(400)
-          .json({
-            message: "Topics must be an array of at least one non-empty string",
-          });
+        return res.status(400).json({
+          message: "Topics must be an array of at least one non-empty string",
+        });
       }
       question.topics = topics;
     }

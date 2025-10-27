@@ -17,6 +17,10 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Set strict routing to false to handle trailing slashes
+app.set("strict routing", false);
 
 // Routes
 app.get("/", (_req, res) => {

@@ -16,6 +16,7 @@ export function useAuth() {
     null
   );
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if user is logged in by checking localStorage and fetching profile
@@ -39,11 +40,25 @@ export function useAuth() {
 
             // Start token refresh timer
             startTokenRefreshTimer();
+
+            // Fetch token for use with other services
+            try {
+              const tokenResponse = await fetch("http://localhost:3002/user/token", {
+                credentials: "include",
+              });
+              if (tokenResponse.ok) {
+                const tokenData = await tokenResponse.json();
+                setToken(tokenData.token);
+              }
+            } catch (err) {
+              console.error("Error fetching token:", err);
+            }
           } else {
             // Session expired or invalid - clear localStorage
             localStorage.removeItem("user");
             setUser(null);
             setProfile(null);
+            setToken(null);
             stopTokenRefreshTimer();
           }
         } catch (err) {
@@ -73,11 +88,34 @@ export function useAuth() {
     localStorage.removeItem("user");
     setUser(null);
     setProfile(null);
+    setToken(null);
+  };
+
+  // Function to get token on demand (useful for API calls)
+  const getToken = async (): Promise<string | null> => {
+    if (token) {
+      return token;
+    }
+
+    try {
+      const response = await fetch("http://localhost:3002/user/token", {
+        credentials: "include",
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setToken(data.token);
+        return data.token;
+      }
+    } catch (err) {
+      console.error("Error fetching token:", err);
+    }
+    
+    return null;
   };
 
   // User is logged in if we have user data in localStorage
   const isLoggedIn = !!user;
   const isAdmin = profile?.role === "admin";
 
-  return { user, login, logout, isLoggedIn, isAdmin, profile, isLoading };
+  return { user, login, logout, isLoggedIn, isAdmin, profile, isLoading, token, getToken };
 }

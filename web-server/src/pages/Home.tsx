@@ -10,6 +10,10 @@ import {
   TextField,
   Alert,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   Chip,
   OutlinedInput,
   SelectChangeEvent,
@@ -26,7 +30,7 @@ export default function Home() {
   const [loadingTopics, setLoadingTopics] = useState(true);
   const [lastTopicRefresh, setLastTopicRefresh] = useState<Date | null>(null);
 
-  const { match, findMatch, isFinding, timeProgress, error, resetMatch } =
+  const { match, question,  findMatch, acceptMatch, declineMatch, isFinding, isAccepting, timeProgress, error, resetMatch } =
     useMatchmaking(userId, difficulty, language, selectedTopics, 60);
 
   // Fetch available topics from database on component mount and refresh periodically
@@ -204,8 +208,8 @@ export default function Home() {
           {match
             ? "Matched!"
             : isFinding
-            ? `Finding (${timeProgress}s)`
-            : "Find Match"}
+              ? `Finding (${timeProgress}s)`
+              : "Find Match"}
         </Button>
 
         {(match || error) && (
@@ -215,15 +219,71 @@ export default function Home() {
         )}
       </Stack>
 
+      {match && match.status === "pending" && (
+        <Dialog open maxWidth="sm" fullWidth>
+          <DialogTitle>Match Found</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1">
+              A peer has been found. Please accept to proceed or decline to find again.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={declineMatch} variant="contained" sx={{ backgroundColor: "rgba(244, 67, 54, 0.4)", color: "#fff", "&:hover": { backgroundColor: "rgba(244, 67, 54, 0.5)" } }}>
+              Decline
+            </Button>
+            <Button onClick={acceptMatch} variant="contained" disabled={isAccepting || !match || match.status !== "pending"}>
+              {isAccepting ? "Accepting..." : "Accept"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
       {selectedTopics.length === 0 && !isFinding && !match && (
         <Alert severity="warning" sx={{ mt: 2 }}>
           No topic selected — you may be matched with any category.
         </Alert>
       )}
 
-      {match && (
-        <Alert severity="success">
-          Match Found! Users: {match.users.join(", ")}
+      {match && match.status !== "pending" && (
+        <Alert severity="success" sx={{ mt: 2 }}>
+          <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+            Match Found! Users: {match.users.join(", ")}
+          </Typography>
+          {question ? (
+            <Box
+              sx={{ mt: 2, p: 2, bgcolor: "background.paper", borderRadius: 1 }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: "bold", mb: 1 }}
+              >
+                📝 Selected Question: {question.title}
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 0.5 }}
+              >
+                <strong>Difficulty:</strong> {question.difficulty}
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 0.5 }}
+              >
+                <strong>Topics:</strong> {question.topics.join(", ")}
+              </Typography>
+              {match.matchedTopics && match.matchedTopics.length > 0 && (
+                <Typography variant="body2" color="text.secondary">
+                  <strong>Matched Topics:</strong>{" "}
+                  {match.matchedTopics.join(", ")}
+                </Typography>
+              )}
+            </Box>
+          ) : (
+            <Typography variant="body2" sx={{ mt: 1 }}>
+              Loading question details...
+            </Typography>
+          )}
         </Alert>
       )}
 
