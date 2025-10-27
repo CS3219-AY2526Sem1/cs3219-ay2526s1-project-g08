@@ -44,6 +44,22 @@ export const leaveQueue = () => {
   closeWebSocket(); // matching service handles queue cleanup on disconnect
 };
 
+export const acceptMatch = (matchId: string) => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ action: "accept_match", matchId }));
+  } else {
+    console.error("WebSocket not open yet");
+  }
+};
+
+export const declineMatch = (matchId: string) => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ action: "decline_match", matchId }));
+  } else {
+    console.error("WebSocket not open yet");
+  }
+};
+
 export const closeWebSocket = () => {
   if (ws) {
     ws.close();
