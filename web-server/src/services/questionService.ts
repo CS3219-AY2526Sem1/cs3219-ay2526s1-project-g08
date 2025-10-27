@@ -47,6 +47,18 @@ export async function getAllTopics(): Promise<string[]> {
   return response.json();
 }
 
+export async function getQuestionById(questionId: string): Promise<Question> {
+  const response = await fetch(`${QUESTION_SERVICE_URL}/${questionId}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch question with ID: ${questionId}`);
+  }
+
+  return response.json();
+}
+
 export async function createQuestion(
   data: CreateQuestionData
 ): Promise<Question> {

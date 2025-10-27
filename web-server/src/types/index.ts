@@ -18,7 +18,7 @@ export interface Match {
   id: string;
   users: string[];
   status: string;
-  question?: Question;
+  questionId?: string; // Just the question ID now
   difficulty?: string;
   language?: string;
   matchedTopics?: string[];

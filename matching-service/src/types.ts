@@ -25,7 +25,7 @@ export interface Match {
   id: string;
   users: string[];
   status: "pending" | "accepted" | "declined";
-  question?: Question; // The selected question for this match
+  questionId?: string; // The ID of the selected question for this match
   difficulty: string;
   language: string;
   matchedTopics: string[]; // The intersection of topics that matched
