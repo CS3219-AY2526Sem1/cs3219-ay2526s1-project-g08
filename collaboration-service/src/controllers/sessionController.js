@@ -22,6 +22,7 @@ const createSessionSchema = Joi.object({
 });
 
 // Create new collaboration session
+// Request sent by matching service
 router.post('/sessions', async (req, res) => {
   try {
     const { error, value } = createSessionSchema.validate(req.body);
@@ -31,15 +32,6 @@ router.post('/sessions', async (req, res) => {
         success: false,
         message: 'Validation error',
         details: error.details
-      });
-    }
-
-    // Verify requesting user is one of the participants
-    if (!value.participants.includes(req.userId)) {
-      // 403 Forbidden
-      return res.status(403).json({
-        success: false,
-        message: 'User must be one of the participants'
       });
     }
 

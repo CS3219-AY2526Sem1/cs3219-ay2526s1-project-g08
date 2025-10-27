@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import { useMatchmaking } from "../hooks/useMatchmaking";
 import { getAllTopics } from "../services/questionService";
+import { useNavigate } from 'react-router-dom';
 
 export default function Home() {
   const [userId, setUserId] = useState("user123");
@@ -25,6 +26,7 @@ export default function Home() {
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [loadingTopics, setLoadingTopics] = useState(true);
   const [lastTopicRefresh, setLastTopicRefresh] = useState<Date | null>(null);
+  const navigate = useNavigate();
 
   const { match, question, findMatch, isFinding, timeProgress, error, resetMatch } =
     useMatchmaking(userId, difficulty, language, selectedTopics, 60);
@@ -84,6 +86,15 @@ export default function Home() {
     } = event;
     setSelectedTopics(typeof value === "string" ? value.split(",") : value);
   };
+
+  // Navigate to collaboration when match is found
+  useEffect(() => {
+    if (match && match.sessionId) {
+      // Session already created by matching service, just navigate
+      console.log('Session created, navigating to:', match.sessionId);
+      navigate(`/collaboration/${match.sessionId}`);
+    }
+  }, [match, navigate]);
 
   const handleFindMatch = async () => {
     await findMatch();
