@@ -1,4 +1,9 @@
 import { useState, useEffect } from "react";
+import { apiFetch } from "../utils/api";
+import {
+  startTokenRefreshTimer,
+  stopTokenRefreshTimer,
+} from "../utils/tokenRefresh";
 
 interface UserProfile {
   userId: string;
@@ -24,9 +29,7 @@ export function useAuth() {
 
         // Fetch profile to get role information and verify session
         try {
-          const response = await fetch("http://localhost:3002/user/profile", {
-            credentials: "include",
-          });
+          const response = await apiFetch("/user/profile");
 
           if (response.ok) {
             const userData = await response.json();
@@ -34,6 +37,9 @@ export function useAuth() {
             // Update localStorage with latest profile data
             localStorage.setItem("user", JSON.stringify(userData));
             setUser(userData);
+
+            // Start token refresh timer
+            startTokenRefreshTimer();
 
             // Fetch token for use with other services
             try {
@@ -53,6 +59,7 @@ export function useAuth() {
             setUser(null);
             setProfile(null);
             setToken(null);
+            stopTokenRefreshTimer();
           }
         } catch (err) {
           console.error("Error fetching user profile:", err);
@@ -70,9 +77,14 @@ export function useAuth() {
   const login = (userData: { userId: string; name: string }) => {
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
+    // Start token refresh timer when user logs in
+    startTokenRefreshTimer();
   };
 
   const logout = () => {
+    // Stop token refresh timer
+    stopTokenRefreshTimer();
+
     localStorage.removeItem("user");
     setUser(null);
     setProfile(null);

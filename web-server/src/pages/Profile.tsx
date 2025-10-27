@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Box, Typography, Card, CardContent } from "@mui/material";
+import { apiFetch } from "../utils/api";
 
 export default function Profile() {
   const [userId, setUserId] = useState("");
   const [name, setName] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:3002/user/profile", { credentials: 'include' })
+    apiFetch("/user/profile")
       .then((res) => res.json())
       .then((data) => {
         setUserId(data.userId);

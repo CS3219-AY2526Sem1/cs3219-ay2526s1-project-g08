@@ -10,6 +10,7 @@ import {
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { TbHome, TbUser, TbLogout, TbShieldCheck } from "react-icons/tb";
 import { useAuth } from "../hooks/useAuth";
+import { stopTokenRefreshTimer } from "../utils/tokenRefresh";
 
 const SIDEBAR_WIDTH = 240;
 
@@ -33,6 +34,9 @@ export default function Layout() {
   }
 
   const handleLogout = async () => {
+    // Stop token refresh timer
+    stopTokenRefreshTimer();
+
     // Clean up WebSocket connection if it exists
     const ws = window.matchmakingWS;
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -41,15 +45,19 @@ export default function Layout() {
       delete window.matchmakingWS;
     }
 
-    // Call backend logout
+    // Call backend logout to revoke refresh token
     try {
       await fetch("http://localhost:3002/auth/logout", {
         method: "POST",
         credentials: "include",
       });
+      console.log("✓ Logout successful");
     } catch (error) {
       console.error("Logout request failed:", error);
     }
+
+    // Clear local storage
+    localStorage.removeItem("user");
 
     // Always navigate to landing page
     navigate("/");

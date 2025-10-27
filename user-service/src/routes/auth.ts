@@ -1,7 +1,14 @@
 import express from "express";
 import { CLIENT_ID, CLIENT_SECRET } from "../config/github";
-import { signJwt } from "../utils/jwt";
+import { signAccessToken } from "../utils/jwt";
 import { getDb } from "../utils/mongo";
+import { parseExpiry } from "../utils/expiry";
+import {
+  storeRefreshToken,
+  verifyRefreshToken,
+  revokeRefreshToken,
+} from "../db/refreshToken";
+import { getUserById } from "../db/user";
 
 const router = express.Router();
 
@@ -32,12 +39,12 @@ router.get("/callback", async (req, res) => {
       }
     );
     const tokenData = await tokenResp.json();
-    const accessToken = tokenData.access_token;
-    if (!accessToken) return res.status(400).send("No access token");
+    const githubAccessToken = tokenData.access_token;
+    if (!githubAccessToken) return res.status(400).send("No access token");
 
     // Fetch GitHub user info
     const userResp = await fetch("https://api.github.com/user", {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${githubAccessToken}` },
     });
     const githubUser = await userResp.json();
 
@@ -62,17 +69,45 @@ router.get("/callback", async (req, res) => {
       .findOne({ userId: githubUser.login });
     const userRole = user?.role || "user";
 
-    // Generate JWT with role
-    const jwtToken = signJwt({
+    // Generate access token (short-lived)
+    const accessToken = signAccessToken({
       userId: githubUser.login,
       role: userRole,
     });
 
-    res.cookie("token", jwtToken, {
+    // Parse expiry from environment variables
+    const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || "1h";
+    const refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY || "30d";
+
+    const accessTokenMs = parseExpiry(accessTokenExpiry, 60 * 60 * 1000); // default 1 hour
+    const refreshTokenMs = parseExpiry(
+      refreshTokenExpiry,
+      30 * 24 * 60 * 60 * 1000
+    ); // default 30 days
+    const refreshTokenDays = refreshTokenMs / (24 * 60 * 60 * 1000);
+
+    // Generate and store refresh token (long-lived)
+    const refreshToken = await storeRefreshToken(
+      githubUser.login,
+      refreshTokenDays, // Use dynamic expiry
+      req.headers["user-agent"] // Store device info
+    );
+
+    // Set access token as httpOnly cookie
+    res.cookie("token", accessToken, {
       httpOnly: true,
       secure: false, // might be https in production
       sameSite: "lax",
-      maxAge: 1000 * 60 * 60 * 24, // 1 day
+      maxAge: accessTokenMs, // Use dynamic expiry
+      path: "/",
+    });
+
+    // Set refresh token as httpOnly cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: false, // might be https in production
+      sameSite: "lax",
+      maxAge: refreshTokenMs, // Use dynamic expiry
       path: "/",
     });
 
@@ -98,13 +133,95 @@ router.get("/callback", async (req, res) => {
   }
 });
 
-router.post("/logout", (req, res) => {
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: false,
-    sameSite: "lax",
-  });
-  res.status(200).send("Logged out");
+router.post("/logout", async (req, res) => {
+  try {
+    // Get refresh token from cookie
+    const refreshToken = req.cookies?.refreshToken;
+
+    // Revoke refresh token if present
+    if (refreshToken) {
+      await revokeRefreshToken(refreshToken);
+      console.log("✓ Refresh token revoked on logout");
+    }
+
+    // Clear both cookies
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+    });
+
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (err) {
+    console.error("Logout error:", err);
+    res.status(500).json({ error: "Logout failed" });
+  }
+});
+
+/**
+ * POST /auth/refresh
+ * Use refresh token to get a new access token
+ */
+router.post("/refresh", async (req, res) => {
+  try {
+    // Get refresh token from cookie
+    const refreshToken = req.cookies?.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({ error: "No refresh token provided" });
+    }
+
+    // Verify refresh token
+    const userId = await verifyRefreshToken(refreshToken);
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ error: "Invalid or expired refresh token" });
+    }
+
+    // Fetch user from DB to get current role
+    const user = await getUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Generate new access token
+    const newAccessToken = signAccessToken({
+      userId: user.userId,
+      role: user.role,
+    });
+
+    // Parse access token expiry from environment
+    const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || "1h";
+    const accessTokenMs = parseExpiry(accessTokenExpiry, 60 * 60 * 1000); // default 1 hour
+
+    // Set new access token cookie
+    res.cookie("token", newAccessToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      maxAge: accessTokenMs, // Use dynamic expiry
+      path: "/",
+    });
+
+    console.log(`✓ Access token refreshed for user: ${userId}`);
+    res.status(200).json({
+      message: "Token refreshed successfully",
+      userId: user.userId,
+      role: user.role,
+    });
+  } catch (err) {
+    console.error("Token refresh error:", err);
+    res.status(500).json({ error: "Token refresh failed" });
+  }
 });
 
 export default router;

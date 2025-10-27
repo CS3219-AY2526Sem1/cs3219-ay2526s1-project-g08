@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../utils/api";
+import { startTokenRefreshTimer } from "../utils/tokenRefresh";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -20,20 +22,25 @@ export default function AuthCallback() {
           localStorage.setItem("user", JSON.stringify({ userId, name }));
           console.log("User data stored in localStorage");
 
+          // Start token refresh timer
+          startTokenRefreshTimer();
+
           // Navigate to home
           navigate("/home", { replace: true });
         } else {
           // No params - try to fetch user profile directly using the cookie
           console.log("No URL params, fetching profile...");
 
-          const response = await fetch("http://localhost:3002/user/profile", {
-            credentials: "include",
-          });
+          const response = await apiFetch("/user/profile");
 
           if (response.ok) {
             const userData = await response.json();
             console.log("Fetched user profile:", userData);
             localStorage.setItem("user", JSON.stringify(userData));
+
+            // Start token refresh timer
+            startTokenRefreshTimer();
+
             navigate("/home", { replace: true });
           } else {
             console.error("Failed to fetch profile:", response.status);
