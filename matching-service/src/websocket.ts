@@ -1,5 +1,5 @@
 import WebSocket from "ws";
-import { joinQueue } from "./queue";
+import { joinQueue, leaveQueue } from "./queue";
 import { findMatch } from "./matchmaking";
 import { User, ExtendedWebSocket } from "./types";
 import { redis } from "./redis";
@@ -63,7 +63,6 @@ export function startWebSocketServer(port: number) {
         activeConnections.delete(disconnectedUserId);
 
         // Remove from queue
-        const { leaveQueue } = await import("./queue");
         await leaveQueue(disconnectedUserId);
         console.log(
           `User ${disconnectedUserId} removed from queue due to disconnect`
@@ -262,10 +261,6 @@ async function handleMatchDecline(matchId: string, decliningUserId: string) {
 
     if (otherUserData) {
       console.log(`Re-queueing user ${otherUserId} after match decline`);
-
-      // Import needed functions
-      const { joinQueue } = await import("./queue");
-      const { findMatch } = await import("./matchmaking");
 
       const userToRequeue = {
         id: otherUserData.id,
