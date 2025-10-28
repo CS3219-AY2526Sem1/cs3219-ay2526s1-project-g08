@@ -81,44 +81,16 @@ export function setupRedisSubscriber() {
           );
         }
 
-        // Mark match as declined
-        await redis.hset(matchId, { status: "declined" });
+        // Mark match as timed out (not declined)
+        await redis.hset(matchId, { status: "timeout" });
 
-        // Re-queue both users since neither accepted in time
-        const user1Data = matchData.user1Data
-          ? JSON.parse(matchData.user1Data)
-          : null;
-        const user2Data = matchData.user2Data
-          ? JSON.parse(matchData.user2Data)
-          : null;
-
-        if (user1Data || user2Data) {
-          const { joinQueue } = await import("./queue");
-          const { findMatch } = await import("./matchmaking");
-
-          // Re-queue both users
-          for (const userData of [user1Data, user2Data].filter(Boolean)) {
-            const userToRequeue = {
-              id: userData.id,
-              difficulty: userData.difficulty,
-              language: userData.language,
-              topics: userData.topics,
-              joinTime: userData.joinTime,
-              ws: activeConnections.get(userData.id),
-            };
-
-            await joinQueue(userToRequeue);
-            console.log(
-              `Re-queued user ${userData.id} after timeout with joinTime ${userData.joinTime}`
-            );
-
-            // Try to find match for re-queued user
-            const newMatch = await findMatch(userToRequeue);
-            if (newMatch) {
-              console.log(`Found new match for ${userData.id}: ${newMatch.id}`);
-              await redis.publish("match_found", JSON.stringify(newMatch));
-            }
-          }
+        // Remove both users from queue (don't re-queue AFK users)
+        const { leaveQueue } = await import("./queue");
+        for (const uid of users) {
+          await leaveQueue(uid);
+          console.log(
+            `Removed user ${uid} from queue due to match timeout (AFK)`
+          );
         }
 
         // Notify users about timeout
@@ -129,6 +101,7 @@ export function setupRedisSubscriber() {
               JSON.stringify({
                 event: "match_declined",
                 match: { id: matchId, users, status: "declined" },
+                reason: "timeout", // Indicate this is a timeout, not a manual decline
               })
             );
           }

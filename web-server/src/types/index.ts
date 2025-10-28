@@ -47,6 +47,7 @@ export interface MatchAcceptanceUpdateMessage {
 export interface MatchDeclinedMessage {
   event: "match_declined";
   match: Match;
+  reason?: "timeout" | "manual_decline"; // Distinguish between timeout and manual decline
 }
 
 export type WebSocketMessage =

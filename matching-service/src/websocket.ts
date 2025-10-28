@@ -209,6 +209,14 @@ async function handleMatchDecline(matchId: string, decliningUserId: string) {
   const matchData = await redis.hgetall(matchId);
   if (!matchData.users) return;
 
+  // If match already timed out, don't process manual decline
+  if (matchData.status === "timeout") {
+    console.log(
+      `Match ${matchId} already timed out, skipping manual decline processing`
+    );
+    return;
+  }
+
   const users: string[] = JSON.parse(matchData.users);
   const sessionId = matchData.sessionId;
 
@@ -306,6 +314,7 @@ async function handleMatchDecline(matchId: string, decliningUserId: string) {
             status: "declined",
             decliningUserId, // Let clients know who declined
           },
+          reason: "manual_decline", // This is a manual decline by a user
         })
       );
     }

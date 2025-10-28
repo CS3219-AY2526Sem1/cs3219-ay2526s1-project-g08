@@ -63,9 +63,23 @@ export const useMatchmaking = (
           const decliningUserId = msg.match.decliningUserId;
           const wasDeclinedByMe = decliningUserId === userId;
           const declinedMatchId = msg.match.id;
+          const reason = msg.reason;
 
           setMatch(msg.match);
 
+          // Handle timeout - both users removed from queue
+          if (reason === "timeout") {
+            setError("Match timed out. Click 'Find Match' to search again.");
+            stopSearching();
+            setTimeout(() => {
+              setMatch(null);
+              setError(null);
+            }, 3000);
+            setIsAccepting(false);
+            return;
+          }
+
+          // Handle manual decline
           if (wasDeclinedByMe) {
             // I declined, clear after 3 seconds
             setError("You declined the match.");
