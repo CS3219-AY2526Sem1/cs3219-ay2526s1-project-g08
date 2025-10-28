@@ -17,13 +17,16 @@ import {
   Chip,
   OutlinedInput,
   SelectChangeEvent,
+  Divider,
 } from "@mui/material";
 import { useMatchmaking } from "../hooks/useMatchmaking";
 import { getAllTopics } from "../services/questionService";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Home() {
-  const [userId, setUserId] = useState("user123");
+  const { user } = useAuth();
+  const [userId, setUserId] = useState(user?.userId || "user123");
   const [difficulty, setDifficulty] = useState("easy");
   const [language, setLanguage] = useState("python");
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
@@ -32,8 +35,25 @@ export default function Home() {
   const [lastTopicRefresh, setLastTopicRefresh] = useState<Date | null>(null);
   const navigate = useNavigate();
 
-  const { match, question,  findMatch, acceptMatch, declineMatch, isFinding, isAccepting, timeProgress, error, resetMatch } =
-    useMatchmaking(userId, difficulty, language, selectedTopics, 60);
+  // Update userId when user data becomes available
+  useEffect(() => {
+    if (user?.userId) {
+      setUserId(user.userId);
+    }
+  }, [user]);
+
+  const {
+    match,
+    question,
+    findMatch,
+    acceptMatch,
+    declineMatch,
+    isFinding,
+    isAccepting,
+    timeProgress,
+    error,
+    resetMatch,
+  } = useMatchmaking(userId, difficulty, language, selectedTopics, 60);
 
   // Fetch available topics from database on component mount and refresh periodically
   useEffect(() => {
@@ -91,11 +111,11 @@ export default function Home() {
     setSelectedTopics(typeof value === "string" ? value.split(",") : value);
   };
 
-  // Navigate to collaboration when match is found
+  // Navigate to collaboration only when match is accepted
   useEffect(() => {
-    if (match && match.sessionId) {
-      // Session already created by matching service, just navigate
-      console.log('Session created, navigating to:', match.sessionId);
+    if (match && match.sessionId && match.status === "accepted") {
+      // Both users have accepted, navigate to session
+      console.log("Match accepted, navigating to:", match.sessionId);
       navigate(`/collaboration/${match.sessionId}`);
     }
   }, [match, navigate]);
@@ -219,8 +239,8 @@ export default function Home() {
           {match
             ? "Matched!"
             : isFinding
-              ? `Finding (${timeProgress}s)`
-              : "Find Match"}
+            ? `Finding (${timeProgress}s)`
+            : "Find Match"}
         </Button>
 
         {(match || error) && (
@@ -232,17 +252,87 @@ export default function Home() {
 
       {match && match.status === "pending" && (
         <Dialog open maxWidth="sm" fullWidth>
-          <DialogTitle>Match Found</DialogTitle>
+          <DialogTitle>🎉 Match Found!</DialogTitle>
           <DialogContent>
-            <Typography variant="body1">
-              A peer has been found. Please accept to proceed or decline to find again.
-            </Typography>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              {/* Peer Information */}
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
+                  Matched with:
+                </Typography>
+                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+                  {match.users.find((id) => id !== userId) || "Another user"}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  User ID: {match.users.find((id) => id !== userId)}
+                </Typography>
+              </Box>
+
+              <Divider />
+
+              {/* Question Information */}
+              {question ? (
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    Question:
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                    {question.title}
+                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
+                    <Chip
+                      label={question.difficulty}
+                      size="small"
+                      color={
+                        question.difficulty === "easy"
+                          ? "success"
+                          : question.difficulty === "medium"
+                          ? "warning"
+                          : "error"
+                      }
+                    />
+                    <Chip label={language} size="small" variant="outlined" />
+                  </Stack>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Topics:</strong> {question.topics.join(", ")}
+                  </Typography>
+                </Box>
+              ) : (
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    Loading question details...
+                  </Typography>
+                </Box>
+              )}
+
+              <Divider />
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontStyle: "italic" }}
+              >
+                Both users must accept to start the collaboration session.
+              </Typography>
+            </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={declineMatch} variant="contained" sx={{ backgroundColor: "rgba(244, 67, 54, 0.4)", color: "#fff", "&:hover": { backgroundColor: "rgba(244, 67, 54, 0.5)" } }}>
+            <Button onClick={declineMatch} variant="outlined" color="error">
               Decline
             </Button>
-            <Button onClick={acceptMatch} variant="contained" disabled={isAccepting || !match || match.status !== "pending"}>
+            <Button
+              onClick={acceptMatch}
+              variant="contained"
+              disabled={isAccepting || !match || match.status !== "pending"}
+            >
               {isAccepting ? "Accepting..." : "Accept"}
             </Button>
           </DialogActions>

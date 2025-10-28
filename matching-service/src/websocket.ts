@@ -87,13 +87,26 @@ async function handleMatchAccept(matchId: string, userId: string) {
 
   if (acceptedUsers.length === 2) {
     await redis.hset(matchId, { status: "accepted" });
+
+    // Retrieve full match data including sessionId and other fields
+    const fullMatchData = await redis.hgetall(matchId);
+
     users.forEach((uid) => {
       const ws = activeConnections.get(uid);
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(
           JSON.stringify({
             event: "match_accepted",
-            match: { id: matchId, users, status: "accepted" },
+            match: {
+              id: matchId,
+              users,
+              status: "accepted",
+              sessionId: fullMatchData.sessionId,
+              questionId: fullMatchData.questionId,
+              difficulty: fullMatchData.difficulty,
+              language: fullMatchData.language,
+              matchedTopics: JSON.parse(fullMatchData.matchedTopics || "[]"),
+            },
           })
         );
       }
@@ -112,7 +125,9 @@ async function handleMatchDecline(matchId: string) {
     const ws = activeConnections.get(uid);
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(
-        JSON.stringify({ event: "match_declined", match: { id: matchId, users, status: "declined" },
+        JSON.stringify({
+          event: "match_declined",
+          match: { id: matchId, users, status: "declined" },
         })
       );
     }
