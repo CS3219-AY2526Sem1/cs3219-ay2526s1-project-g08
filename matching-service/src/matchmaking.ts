@@ -37,6 +37,23 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       } with topics: ${matchedTopics.join(", ")}`
     );
 
+    // Store user data before removing from queue (needed for re-queueing on decline)
+    const user1Data = {
+      id: user.id,
+      difficulty: user.difficulty,
+      language: user.language,
+      topics: user.topics,
+      joinTime: user.joinTime,
+    };
+
+    const user2Data = {
+      id: u.id,
+      difficulty: u.difficulty,
+      language: u.language,
+      topics: u.topics,
+      joinTime: u.joinTime,
+    };
+
     // Remove both users from queue
     await leaveQueue(user.id);
     await leaveQueue(u.id);
@@ -61,18 +78,20 @@ export async function findMatch(user: User): Promise<Match | undefined> {
     // - If both users had no preferences (matchedTopics is empty), use the question's actual topics
     // - Otherwise, use the matchedTopics from user preferences
     let sessionTopics = matchedTopics;
-    
+
     if (matchedTopics.length === 0) {
       // Both users selected no preferences - fetch question details to get its topics
       const question = await getQuestionById(questionId);
-      
+
       if (!question) {
         console.error(`Failed to fetch question details for ${questionId}`);
         return undefined;
       }
-      
+
       sessionTopics = question.topics;
-      console.log(`Using question's topics for session: ${sessionTopics.join(", ")}`);
+      console.log(
+        `Using question's topics for session: ${sessionTopics.join(", ")}`
+      );
     }
 
     const matchId = `match:${Date.now()}`;
@@ -84,18 +103,8 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       difficulty: user.difficulty,
       language: user.language,
       matchedTopics: sessionTopics,
-      sessionId: "" // Placeholder, will be set after session creation
-
+      sessionId: "", // Will be created after both users accept
     };
-
-    // Create collaboration session
-    const sessionId = await createCollaborationSession(match);
-    
-    if (!sessionId) {
-      console.error('Failed to create collaboration session, match cancelled');
-      // Put users back in queue since session creation failed
-      return undefined;
-    }
 
     // Store match in Redis with extended data
     await redis.hset(matchId, {
@@ -105,57 +114,19 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       difficulty: match.difficulty,
       language: match.language,
       matchedTopics: JSON.stringify(sessionTopics),
-      sessionId: sessionId
+      sessionId: "", // Empty initially, will be set when both accept
+      user1Data: JSON.stringify(user1Data), // Store for potential re-queueing
+      user2Data: JSON.stringify(user2Data), // Store for potential re-queueing
     });
-    await redis.expire(matchId, 15);
+    // Set expiry to 30 seconds to allow for timeout handling (15s timeout + 15s buffer)
+    await redis.expire(matchId, 30);
 
-    console.log(`Match created with question: ${questionId} and session: ${sessionId}`);
+    console.log(
+      `Match created with question: ${questionId}, waiting for acceptance`
+    );
 
-    // Add sessionId to match
-    const matchWithSessionId: Match = {
-      ...match,
-      sessionId,
-    };
-
-    return matchWithSessionId;
+    return match;
   }
 
   return undefined;
-}
-
-// Create a collaboration session via the collaboration service
-async function createCollaborationSession(match: Match): Promise<string | null> {
-  try {
-    if (!match.questionId) {
-      console.error('No question in match for session creation');
-      return null;
-    }
-
-    const response = await fetch('http://collaboration-service:3004/api/collaboration/sessions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        participants: match.users,
-        questionId: match.questionId,
-        difficulty: match.difficulty,
-        topics: match.matchedTopics,
-        language: match.language
-      })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log('Collaboration session created:', data.data.sessionId);
-      return data.data.sessionId;
-    } else {
-      const error = await response.json();
-      console.error('Failed to create collaboration session:', error);
-      return null;
-    }
-  } catch (error) {
-    console.error('Error creating collaboration session:', error);
-    return null;
-  }
 }

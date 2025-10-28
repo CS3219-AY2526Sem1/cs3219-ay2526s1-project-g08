@@ -36,9 +36,9 @@ export const useMatchmaking = (
       await connectWebSocket(async (msg: WebSocketMessage) => {
         if (msg.event === "match_found") {
           stopSearching(); // need to be initialised
-          setIsAccepting(false); //to clear any state 
+          setIsAccepting(false); //to clear any state
           setMatch(msg.match);
-          
+
           // Fetch the question details using the questionId
           if (msg.match.questionId) {
             try {
@@ -50,16 +50,96 @@ export const useMatchmaking = (
             }
           }
         }
+        if (msg.event === "match_acceptance_update") {
+          // Update match with current acceptance count
+          setMatch(msg.match);
+        }
         if (msg.event === "match_accepted") {
           setMatch(msg.match);
           setIsAccepting(false);
         }
         if (msg.event === "match_declined") {
           console.log("Match declined:", msg.match.id);
-          setMatch(null);
-          setError("Match was declined by peer. Please find again");
+          const decliningUserId = msg.match.decliningUserId;
+          const wasDeclinedByMe = decliningUserId === userId;
+          const declinedMatchId = msg.match.id;
+          const reason = msg.reason;
+
+          setMatch(msg.match);
+
+          // Handle timeout - both users removed from queue
+          if (reason === "timeout") {
+            setError("Match timed out. Click 'Find Match' to search again.");
+            stopSearching();
+            setTimeout(() => {
+              setMatch(null);
+              setError(null);
+            }, 3000);
+            setIsAccepting(false);
+            return;
+          }
+
+          // Handle manual decline
+          if (wasDeclinedByMe) {
+            // I declined, clear after 3 seconds
+            setError("You declined the match.");
+            setTimeout(() => {
+              // Only clear if we're still showing the same declined match
+              setMatch((currentMatch) => {
+                if (
+                  currentMatch?.id === declinedMatchId &&
+                  currentMatch.status === "declined"
+                ) {
+                  setError(null);
+                  setIsFinding(false);
+                  return null;
+                }
+                return currentMatch; // Don't clear if a new match has appeared
+              });
+            }, 3000);
+          } else {
+            // Other user declined, show message and prepare for re-matching
+            setError("Match was declined by peer. Searching again...");
+
+            // Set finding state immediately to show we're searching
+            setIsFinding(true);
+            setTimeProgress(0);
+
+            // Start the progress timer for the re-search
+            if (interval.current) {
+              clearInterval(interval.current);
+            }
+            interval.current = setInterval(() => {
+              setTimeProgress((t) => {
+                const increment = t + 1;
+                if (increment >= timeout) {
+                  stopSearching();
+                  setError(
+                    "No Match found. Please try again or try different topics/levels."
+                  );
+                  return timeout;
+                }
+                return increment;
+              });
+            }, 1000);
+
+            // Clear the declined match after 3 seconds only if no new match found
+            setTimeout(() => {
+              setMatch((currentMatch) => {
+                if (
+                  currentMatch?.id === declinedMatchId &&
+                  currentMatch.status === "declined"
+                ) {
+                  setError(null);
+                  return null;
+                }
+                // Don't clear if a new match has been found
+                return currentMatch;
+              });
+            }, 3000);
+          }
+
           setIsAccepting(false);
-          stopSearching();
         }
       });
 
@@ -92,6 +172,14 @@ export const useMatchmaking = (
       interval.current = null;
     }
     setIsFinding(false);
+  };
+
+  const cancelSearch = () => {
+    stopSearching();
+    closeWebSocket();
+    setMatch(null);
+    setQuestion(null);
+    setError(null);
   };
 
   const acceptMatch = async () => {
@@ -143,5 +231,17 @@ export const useMatchmaking = (
     };
   }, []); // Empty dependency array - only runs on mount/unmount
 
-  return { match, question, findMatch, acceptMatch, declineMatch, isFinding, isAccepting, timeProgress, error, resetMatch };
+  return {
+    match,
+    question,
+    findMatch,
+    cancelSearch,
+    acceptMatch,
+    declineMatch,
+    isFinding,
+    isAccepting,
+    timeProgress,
+    error,
+    resetMatch,
+  };
 };
