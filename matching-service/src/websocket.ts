@@ -119,6 +119,23 @@ async function handleMatchDecline(matchId: string) {
   if (!matchData.users) return;
 
   const users: string[] = JSON.parse(matchData.users);
+  const sessionId = matchData.sessionId;
+
+  // Delete the collaboration session if it was created
+  if (sessionId) {
+    try {
+      await deleteCollaborationSession(sessionId);
+      console.log(
+        `Deleted collaboration session: ${sessionId} due to match decline`
+      );
+    } catch (error) {
+      console.error(
+        `Failed to delete collaboration session ${sessionId}:`,
+        error
+      );
+    }
+  }
+
   await redis.hset(matchId, { status: "declined" });
 
   users.forEach((uid) => {
@@ -132,4 +149,26 @@ async function handleMatchDecline(matchId: string) {
       );
     }
   });
+}
+
+async function deleteCollaborationSession(sessionId: string): Promise<void> {
+  try {
+    const response = await fetch(
+      `http://collaboration-service:3004/api/collaboration/internal/sessions/${sessionId}`,
+      {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Failed to delete collaboration session:", error);
+    }
+  } catch (error) {
+    console.error("Error deleting collaboration session:", error);
+    throw error;
+  }
 }

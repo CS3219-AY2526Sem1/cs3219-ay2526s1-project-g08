@@ -100,6 +100,37 @@ router.get('/sessions/:sessionId', authenticateToken, async (req, res) => {
   }
 });
 
+// Internal endpoint for service-to-service communication
+// Terminate session without authentication (for matching service)
+router.delete('/internal/sessions/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    const session = await sessionService.getSession(sessionId);
+    if (!session) {
+      // 404 Not Found
+      return res.status(404).json({
+        success: false,
+        message: 'Session not found'
+      });
+    }
+
+    await sessionService.terminateSession(sessionId, 'match_declined');
+        
+    res.json({
+      success: true,
+      message: 'Session terminated successfully'
+    });
+
+  } catch (err) {
+    // 500 Internal Server Error
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // Terminate session
 router.delete('/sessions/:sessionId', authenticateToken, async (req, res) => {
   try {
