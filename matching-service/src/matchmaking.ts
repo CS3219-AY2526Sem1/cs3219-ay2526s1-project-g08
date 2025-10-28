@@ -84,18 +84,8 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       difficulty: user.difficulty,
       language: user.language,
       matchedTopics: sessionTopics,
-      sessionId: "" // Placeholder, will be set after session creation
-
+      sessionId: "" // Will be created after both users accept
     };
-
-    // Create collaboration session
-    const sessionId = await createCollaborationSession(match);
-    
-    if (!sessionId) {
-      console.error('Failed to create collaboration session, match cancelled');
-      // Put users back in queue since session creation failed
-      return undefined;
-    }
 
     // Store match in Redis with extended data
     await redis.hset(matchId, {
@@ -105,57 +95,15 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       difficulty: match.difficulty,
       language: match.language,
       matchedTopics: JSON.stringify(sessionTopics),
-      sessionId: sessionId
+      sessionId: "" // Empty initially, will be set when both accept
     });
-    await redis.expire(matchId, 15);
+    // Set expiry to 30 seconds to allow for timeout handling (15s timeout + 15s buffer)
+    await redis.expire(matchId, 30);
 
-    console.log(`Match created with question: ${questionId} and session: ${sessionId}`);
+    console.log(`Match created with question: ${questionId}, waiting for acceptance`);
 
-    // Add sessionId to match
-    const matchWithSessionId: Match = {
-      ...match,
-      sessionId,
-    };
-
-    return matchWithSessionId;
+    return match;
   }
 
   return undefined;
-}
-
-// Create a collaboration session via the collaboration service
-async function createCollaborationSession(match: Match): Promise<string | null> {
-  try {
-    if (!match.questionId) {
-      console.error('No question in match for session creation');
-      return null;
-    }
-
-    const response = await fetch('http://collaboration-service:3004/api/collaboration/sessions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        participants: match.users,
-        questionId: match.questionId,
-        difficulty: match.difficulty,
-        topics: match.matchedTopics,
-        language: match.language
-      })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log('Collaboration session created:', data.data.sessionId);
-      return data.data.sessionId;
-    } else {
-      const error = await response.json();
-      console.error('Failed to create collaboration session:', error);
-      return null;
-    }
-  } catch (error) {
-    console.error('Error creating collaboration session:', error);
-    return null;
-  }
 }

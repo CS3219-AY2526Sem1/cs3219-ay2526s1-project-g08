@@ -83,13 +83,62 @@ async function handleMatchAccept(matchId: string, userId: string) {
   if (!acceptedUsers.includes(userId)) {
     acceptedUsers.push(userId);
     await redis.hset(matchId, { acceptedUsers: JSON.stringify(acceptedUsers) });
+    
+    // Send acceptance update to both users showing current count
+    users.forEach((uid) => {
+      const ws = activeConnections.get(uid);
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(
+          JSON.stringify({
+            event: "match_acceptance_update",
+            match: {
+              id: matchId,
+              users,
+              status: "pending",
+              acceptedCount: acceptedUsers.length,
+            },
+          })
+        );
+      }
+    });
   }
 
   if (acceptedUsers.length === 2) {
-    await redis.hset(matchId, { status: "accepted" });
-
-    // Retrieve full match data including sessionId and other fields
+    // Both users accepted, now create the collaboration session
     const fullMatchData = await redis.hgetall(matchId);
+    
+    const match = {
+      id: matchId,
+      users,
+      questionId: fullMatchData.questionId,
+      difficulty: fullMatchData.difficulty,
+      language: fullMatchData.language,
+      matchedTopics: JSON.parse(fullMatchData.matchedTopics || "[]"),
+    };
+
+    // Create collaboration session only now
+    const sessionId = await createCollaborationSession(match);
+    
+    if (!sessionId) {
+      console.error('Failed to create collaboration session');
+      // Notify users of failure
+      users.forEach((uid) => {
+        const ws = activeConnections.get(uid);
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(
+            JSON.stringify({
+              event: "match_declined",
+              match: { id: matchId, users, status: "declined" },
+            })
+          );
+        }
+      });
+      await redis.hset(matchId, { status: "declined" });
+      return;
+    }
+
+    // Store sessionId and update status
+    await redis.hset(matchId, { status: "accepted", sessionId: sessionId });
 
     users.forEach((uid) => {
       const ws = activeConnections.get(uid);
@@ -101,27 +150,65 @@ async function handleMatchAccept(matchId: string, userId: string) {
               id: matchId,
               users,
               status: "accepted",
-              sessionId: fullMatchData.sessionId,
+              sessionId: sessionId,
               questionId: fullMatchData.questionId,
               difficulty: fullMatchData.difficulty,
               language: fullMatchData.language,
               matchedTopics: JSON.parse(fullMatchData.matchedTopics || "[]"),
+              acceptedCount: 2,
             },
           })
         );
       }
     });
+    
+    console.log(`Both users accepted. Created session: ${sessionId}`);
   }
 }
 
-async function handleMatchDecline(matchId: string) {
+// Create a collaboration session
+async function createCollaborationSession(match: any): Promise<string | null> {
+  try {
+    if (!match.questionId) {
+      console.error('No question in match for session creation');
+      return null;
+    }
+
+    const response = await fetch('http://collaboration-service:3004/api/collaboration/sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        participants: match.users,
+        questionId: match.questionId,
+        difficulty: match.difficulty,
+        topics: match.matchedTopics,
+        language: match.language
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('Collaboration session created:', data.data.sessionId);
+      return data.data.sessionId;
+    } else {
+      const error = await response.json();
+      console.error('Failed to create collaboration session:', error);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error creating collaboration session:', error);
+    return null;
+  }
+}async function handleMatchDecline(matchId: string) {
   const matchData = await redis.hgetall(matchId);
   if (!matchData.users) return;
 
   const users: string[] = JSON.parse(matchData.users);
   const sessionId = matchData.sessionId;
 
-  // Delete the collaboration session if it was created
+  // Delete the collaboration session only if it was created (i.e., both had accepted)
   if (sessionId) {
     try {
       await deleteCollaborationSession(sessionId);
@@ -134,6 +221,8 @@ async function handleMatchDecline(matchId: string) {
         error
       );
     }
+  } else {
+    console.log(`No session to delete for match ${matchId} - users declined before both accepted`);
   }
 
   await redis.hset(matchId, { status: "declined" });
@@ -151,7 +240,10 @@ async function handleMatchDecline(matchId: string) {
   });
 }
 
-async function deleteCollaborationSession(sessionId: string): Promise<void> {
+// Delete a collaboration session - exported for use in redis.ts
+export async function deleteCollaborationSession(
+  sessionId: string
+): Promise<void> {
   try {
     const response = await fetch(
       `http://collaboration-service:3004/api/collaboration/internal/sessions/${sessionId}`,

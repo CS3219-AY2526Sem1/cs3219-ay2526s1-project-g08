@@ -36,9 +36,9 @@ export const useMatchmaking = (
       await connectWebSocket(async (msg: WebSocketMessage) => {
         if (msg.event === "match_found") {
           stopSearching(); // need to be initialised
-          setIsAccepting(false); //to clear any state 
+          setIsAccepting(false); //to clear any state
           setMatch(msg.match);
-          
+
           // Fetch the question details using the questionId
           if (msg.match.questionId) {
             try {
@@ -49,6 +49,10 @@ export const useMatchmaking = (
               setError("Failed to load question details");
             }
           }
+        }
+        if (msg.event === "match_acceptance_update") {
+          // Update match with current acceptance count
+          setMatch(msg.match);
         }
         if (msg.event === "match_accepted") {
           setMatch(msg.match);
@@ -92,6 +96,14 @@ export const useMatchmaking = (
       interval.current = null;
     }
     setIsFinding(false);
+  };
+
+  const cancelSearch = () => {
+    stopSearching();
+    closeWebSocket();
+    setMatch(null);
+    setQuestion(null);
+    setError(null);
   };
 
   const acceptMatch = async () => {
@@ -143,5 +155,17 @@ export const useMatchmaking = (
     };
   }, []); // Empty dependency array - only runs on mount/unmount
 
-  return { match, question, findMatch, acceptMatch, declineMatch, isFinding, isAccepting, timeProgress, error, resetMatch };
+  return {
+    match,
+    question,
+    findMatch,
+    cancelSearch,
+    acceptMatch,
+    declineMatch,
+    isFinding,
+    isAccepting,
+    timeProgress,
+    error,
+    resetMatch,
+  };
 };

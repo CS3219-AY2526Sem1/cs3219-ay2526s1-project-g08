@@ -33,6 +33,7 @@ export default function Home() {
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [loadingTopics, setLoadingTopics] = useState(true);
   const [lastTopicRefresh, setLastTopicRefresh] = useState<Date | null>(null);
+  const [matchTimeLeft, setMatchTimeLeft] = useState(15);
   const navigate = useNavigate();
 
   // Update userId when user data becomes available
@@ -46,13 +47,13 @@ export default function Home() {
     match,
     question,
     findMatch,
+    cancelSearch,
     acceptMatch,
     declineMatch,
     isFinding,
     isAccepting,
     timeProgress,
     error,
-    resetMatch,
   } = useMatchmaking(userId, difficulty, language, selectedTopics, 60);
 
   // Fetch available topics from database on component mount and refresh periodically
@@ -119,6 +120,27 @@ export default function Home() {
       navigate(`/collaboration/${match.sessionId}`);
     }
   }, [match, navigate]);
+
+  // Countdown timer for match acceptance (15 seconds)
+  useEffect(() => {
+    if (match && match.status === "pending") {
+      setMatchTimeLeft(15);
+
+      const timer = setInterval(() => {
+        setMatchTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            // Auto-decline when time runs out
+            declineMatch();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [match?.id]); // Only trigger when match ID changes
 
   const handleFindMatch = async () => {
     await findMatch();
@@ -243,18 +265,59 @@ export default function Home() {
             : "Find Match"}
         </Button>
 
-        {(match || error) && (
-          <Button variant="outlined" onClick={resetMatch}>
-            Find Again
+        {isFinding && (
+          <Button variant="outlined" color="error" onClick={cancelSearch}>
+            Cancel
           </Button>
         )}
       </Stack>
 
       {match && match.status === "pending" && (
         <Dialog open maxWidth="sm" fullWidth>
-          <DialogTitle>🎉 Match Found!</DialogTitle>
+          <DialogTitle>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span>🎉 Match Found!</span>
+              <Chip
+                label={`${matchTimeLeft}s`}
+                color={matchTimeLeft <= 5 ? "error" : "primary"}
+                size="small"
+              />
+            </Box>
+          </DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
+              {/* Acceptance Status */}
+              <Alert
+                severity="info"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  "& .MuiAlert-message": { width: "100%" },
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    width: "100%",
+                  }}
+                >
+                  <Typography variant="body2">Acceptance Status</Typography>
+                  <Chip
+                    label={`${match.acceptedCount || 0}/2 accepted`}
+                    color={match.acceptedCount === 1 ? "warning" : "default"}
+                    size="small"
+                  />
+                </Box>
+              </Alert>
+
               {/* Peer Information */}
               <Box>
                 <Typography

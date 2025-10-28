@@ -25,6 +25,7 @@ export interface Match {
   language?: string;
   matchedTopics?: string[];
   sessionId: string;
+  acceptedCount?: number; // Number of users who have accepted
 }
 
 export interface MatchFoundMessage {
@@ -37,6 +38,11 @@ export interface MatchAcceptedMessage {
   match: Match;
 }
 
+export interface MatchAcceptanceUpdateMessage {
+  event: "match_acceptance_update";
+  match: Match;
+}
+
 export interface MatchDeclinedMessage {
   event: "match_declined";
   match: Match;
@@ -45,6 +51,7 @@ export interface MatchDeclinedMessage {
 export type WebSocketMessage =
   | MatchFoundMessage
   | MatchAcceptedMessage
+  | MatchAcceptanceUpdateMessage
   | MatchDeclinedMessage;
 
 declare global {
