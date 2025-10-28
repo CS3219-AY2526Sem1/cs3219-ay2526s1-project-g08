@@ -60,10 +60,72 @@ export const useMatchmaking = (
         }
         if (msg.event === "match_declined") {
           console.log("Match declined:", msg.match.id);
-          setMatch(null);
-          setError("Match was declined by peer. Please find again");
+          const decliningUserId = msg.match.decliningUserId;
+          const wasDeclinedByMe = decliningUserId === userId;
+          const declinedMatchId = msg.match.id;
+
+          setMatch(msg.match);
+
+          if (wasDeclinedByMe) {
+            // I declined, clear after 3 seconds
+            setError("You declined the match.");
+            setTimeout(() => {
+              // Only clear if we're still showing the same declined match
+              setMatch((currentMatch) => {
+                if (
+                  currentMatch?.id === declinedMatchId &&
+                  currentMatch.status === "declined"
+                ) {
+                  setError(null);
+                  setIsFinding(false);
+                  return null;
+                }
+                return currentMatch; // Don't clear if a new match has appeared
+              });
+            }, 3000);
+          } else {
+            // Other user declined, show message and prepare for re-matching
+            setError("Match was declined by peer. Searching again...");
+
+            // Set finding state immediately to show we're searching
+            setIsFinding(true);
+            setTimeProgress(0);
+
+            // Start the progress timer for the re-search
+            if (interval.current) {
+              clearInterval(interval.current);
+            }
+            interval.current = setInterval(() => {
+              setTimeProgress((t) => {
+                const increment = t + 1;
+                if (increment >= timeout) {
+                  stopSearching();
+                  setError(
+                    "No Match found. Please try again or try different topics/levels."
+                  );
+                  return timeout;
+                }
+                return increment;
+              });
+            }, 1000);
+
+            // Clear the declined match after 3 seconds only if no new match found
+            setTimeout(() => {
+              setMatch((currentMatch) => {
+                if (
+                  currentMatch?.id === declinedMatchId &&
+                  currentMatch.status === "declined"
+                ) {
+                  setError(null);
+                  return null;
+                }
+                // Don't clear if a new match has been found
+                return currentMatch;
+              });
+            }, 3000);
+          }
+
           setIsAccepting(false);
-          stopSearching();
         }
       });
 

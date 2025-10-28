@@ -49,7 +49,7 @@ export function startWebSocketServer(port: number) {
 
       if (data.action === "decline_match") {
         if (!ws.userId) return;
-        await handleMatchDecline(data.matchId);
+        await handleMatchDecline(data.matchId, ws.userId);
       }
     });
 
@@ -83,7 +83,7 @@ async function handleMatchAccept(matchId: string, userId: string) {
   if (!acceptedUsers.includes(userId)) {
     acceptedUsers.push(userId);
     await redis.hset(matchId, { acceptedUsers: JSON.stringify(acceptedUsers) });
-    
+
     // Send acceptance update to both users showing current count
     users.forEach((uid) => {
       const ws = activeConnections.get(uid);
@@ -106,7 +106,7 @@ async function handleMatchAccept(matchId: string, userId: string) {
   if (acceptedUsers.length === 2) {
     // Both users accepted, now create the collaboration session
     const fullMatchData = await redis.hgetall(matchId);
-    
+
     const match = {
       id: matchId,
       users,
@@ -118,9 +118,9 @@ async function handleMatchAccept(matchId: string, userId: string) {
 
     // Create collaboration session only now
     const sessionId = await createCollaborationSession(match);
-    
+
     if (!sessionId) {
-      console.error('Failed to create collaboration session');
+      console.error("Failed to create collaboration session");
       // Notify users of failure
       users.forEach((uid) => {
         const ws = activeConnections.get(uid);
@@ -161,7 +161,7 @@ async function handleMatchAccept(matchId: string, userId: string) {
         );
       }
     });
-    
+
     console.log(`Both users accepted. Created session: ${sessionId}`);
   }
 }
@@ -170,43 +170,50 @@ async function handleMatchAccept(matchId: string, userId: string) {
 async function createCollaborationSession(match: any): Promise<string | null> {
   try {
     if (!match.questionId) {
-      console.error('No question in match for session creation');
+      console.error("No question in match for session creation");
       return null;
     }
 
-    const response = await fetch('http://collaboration-service:3004/api/collaboration/sessions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        participants: match.users,
-        questionId: match.questionId,
-        difficulty: match.difficulty,
-        topics: match.matchedTopics,
-        language: match.language
-      })
-    });
+    const response = await fetch(
+      "http://collaboration-service:3004/api/collaboration/sessions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          participants: match.users,
+          questionId: match.questionId,
+          difficulty: match.difficulty,
+          topics: match.matchedTopics,
+          language: match.language,
+        }),
+      }
+    );
 
     if (response.ok) {
       const data = await response.json();
-      console.log('Collaboration session created:', data.data.sessionId);
+      console.log("Collaboration session created:", data.data.sessionId);
       return data.data.sessionId;
     } else {
       const error = await response.json();
-      console.error('Failed to create collaboration session:', error);
+      console.error("Failed to create collaboration session:", error);
       return null;
     }
   } catch (error) {
-    console.error('Error creating collaboration session:', error);
+    console.error("Error creating collaboration session:", error);
     return null;
   }
-}async function handleMatchDecline(matchId: string) {
+}
+async function handleMatchDecline(matchId: string, decliningUserId: string) {
   const matchData = await redis.hgetall(matchId);
   if (!matchData.users) return;
 
   const users: string[] = JSON.parse(matchData.users);
   const sessionId = matchData.sessionId;
+
+  // Find the other user who didn't decline
+  const otherUserId = users.find((uid) => uid !== decliningUserId);
 
   // Delete the collaboration session only if it was created (i.e., both had accepted)
   if (sessionId) {
@@ -222,10 +229,70 @@ async function createCollaborationSession(match: any): Promise<string | null> {
       );
     }
   } else {
-    console.log(`No session to delete for match ${matchId} - users declined before both accepted`);
+    console.log(
+      `No session to delete for match ${matchId} - users declined before both accepted`
+    );
   }
 
-  await redis.hset(matchId, { status: "declined" });
+  // Re-queue the other user with their original queue position if they exist
+  if (otherUserId) {
+    // Get stored user data from match (since it was deleted from queue)
+    const user1Data = matchData.user1Data
+      ? JSON.parse(matchData.user1Data)
+      : null;
+    const user2Data = matchData.user2Data
+      ? JSON.parse(matchData.user2Data)
+      : null;
+
+    // Find the data for the other user
+    const otherUserData =
+      user1Data?.id === otherUserId
+        ? user1Data
+        : user2Data?.id === otherUserId
+        ? user2Data
+        : null;
+
+    if (otherUserData) {
+      console.log(`Re-queueing user ${otherUserId} after match decline`);
+
+      // Import needed functions
+      const { joinQueue } = await import("./queue");
+      const { findMatch } = await import("./matchmaking");
+
+      const userToRequeue = {
+        id: otherUserData.id,
+        difficulty: otherUserData.difficulty,
+        language: otherUserData.language,
+        topics: otherUserData.topics,
+        joinTime: otherUserData.joinTime,
+        ws: activeConnections.get(otherUserId),
+      };
+
+      await joinQueue(userToRequeue);
+      console.log(
+        `Re-queued user ${otherUserId} with original joinTime ${otherUserData.joinTime}`
+      );
+
+      // Trigger matching for the re-queued user
+      const newMatch = await findMatch(userToRequeue);
+      if (newMatch) {
+        console.log(
+          `Found new match for re-queued user ${otherUserId}: ${newMatch.id}`
+        );
+        await redis.publish("match_found", JSON.stringify(newMatch));
+      } else {
+        console.log(
+          `No immediate match found for re-queued user ${otherUserId}`
+        );
+      }
+    } else {
+      console.log(
+        `No stored data found for user ${otherUserId}, cannot re-queue`
+      );
+    }
+  }
+
+  await redis.hset(matchId, { status: "declined", decliningUserId });
 
   users.forEach((uid) => {
     const ws = activeConnections.get(uid);
@@ -233,7 +300,12 @@ async function createCollaborationSession(match: any): Promise<string | null> {
       ws.send(
         JSON.stringify({
           event: "match_declined",
-          match: { id: matchId, users, status: "declined" },
+          match: {
+            id: matchId,
+            users,
+            status: "declined",
+            decliningUserId, // Let clients know who declined
+          },
         })
       );
     }

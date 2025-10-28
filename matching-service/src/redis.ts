@@ -45,13 +45,21 @@ export function setupRedisSubscriber() {
       const { matchId } = JSON.parse(message);
       const matchData = await redis.hgetall(matchId);
 
-      console.log(`Processing timeout for match ${matchId}, status: ${matchData.status}, hasData: ${!!matchData.users}`);
+      console.log(
+        `Processing timeout for match ${matchId}, status: ${
+          matchData.status
+        }, hasData: ${!!matchData.users}`
+      );
 
       if (matchData.users && matchData.status === "pending") {
         const users: string[] = JSON.parse(matchData.users);
         const sessionId = matchData.sessionId;
 
-        console.log(`Match ${matchId} timed out. SessionId: ${sessionId || 'none'}, Users: ${users.join(", ")}`);
+        console.log(
+          `Match ${matchId} timed out. SessionId: ${
+            sessionId || "none"
+          }, Users: ${users.join(", ")}`
+        );
 
         // Delete the collaboration session only if it was created (i.e., both had accepted)
         if (sessionId) {
@@ -68,13 +76,52 @@ export function setupRedisSubscriber() {
             );
           }
         } else {
-          console.log(`No session to delete for match ${matchId} - timed out before both users accepted`);
+          console.log(
+            `No session to delete for match ${matchId} - timed out before both users accepted`
+          );
         }
 
         // Mark match as declined
         await redis.hset(matchId, { status: "declined" });
 
-        // Notify users
+        // Re-queue both users since neither accepted in time
+        const user1Data = matchData.user1Data
+          ? JSON.parse(matchData.user1Data)
+          : null;
+        const user2Data = matchData.user2Data
+          ? JSON.parse(matchData.user2Data)
+          : null;
+
+        if (user1Data || user2Data) {
+          const { joinQueue } = await import("./queue");
+          const { findMatch } = await import("./matchmaking");
+
+          // Re-queue both users
+          for (const userData of [user1Data, user2Data].filter(Boolean)) {
+            const userToRequeue = {
+              id: userData.id,
+              difficulty: userData.difficulty,
+              language: userData.language,
+              topics: userData.topics,
+              joinTime: userData.joinTime,
+              ws: activeConnections.get(userData.id),
+            };
+
+            await joinQueue(userToRequeue);
+            console.log(
+              `Re-queued user ${userData.id} after timeout with joinTime ${userData.joinTime}`
+            );
+
+            // Try to find match for re-queued user
+            const newMatch = await findMatch(userToRequeue);
+            if (newMatch) {
+              console.log(`Found new match for ${userData.id}: ${newMatch.id}`);
+              await redis.publish("match_found", JSON.stringify(newMatch));
+            }
+          }
+        }
+
+        // Notify users about timeout
         users.forEach((uid) => {
           const ws = activeConnections.get(uid);
           if (ws && ws.readyState === WebSocket.OPEN) {

@@ -37,6 +37,23 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       } with topics: ${matchedTopics.join(", ")}`
     );
 
+    // Store user data before removing from queue (needed for re-queueing on decline)
+    const user1Data = {
+      id: user.id,
+      difficulty: user.difficulty,
+      language: user.language,
+      topics: user.topics,
+      joinTime: user.joinTime,
+    };
+
+    const user2Data = {
+      id: u.id,
+      difficulty: u.difficulty,
+      language: u.language,
+      topics: u.topics,
+      joinTime: u.joinTime,
+    };
+
     // Remove both users from queue
     await leaveQueue(user.id);
     await leaveQueue(u.id);
@@ -61,18 +78,20 @@ export async function findMatch(user: User): Promise<Match | undefined> {
     // - If both users had no preferences (matchedTopics is empty), use the question's actual topics
     // - Otherwise, use the matchedTopics from user preferences
     let sessionTopics = matchedTopics;
-    
+
     if (matchedTopics.length === 0) {
       // Both users selected no preferences - fetch question details to get its topics
       const question = await getQuestionById(questionId);
-      
+
       if (!question) {
         console.error(`Failed to fetch question details for ${questionId}`);
         return undefined;
       }
-      
+
       sessionTopics = question.topics;
-      console.log(`Using question's topics for session: ${sessionTopics.join(", ")}`);
+      console.log(
+        `Using question's topics for session: ${sessionTopics.join(", ")}`
+      );
     }
 
     const matchId = `match:${Date.now()}`;
@@ -84,7 +103,7 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       difficulty: user.difficulty,
       language: user.language,
       matchedTopics: sessionTopics,
-      sessionId: "" // Will be created after both users accept
+      sessionId: "", // Will be created after both users accept
     };
 
     // Store match in Redis with extended data
@@ -95,12 +114,16 @@ export async function findMatch(user: User): Promise<Match | undefined> {
       difficulty: match.difficulty,
       language: match.language,
       matchedTopics: JSON.stringify(sessionTopics),
-      sessionId: "" // Empty initially, will be set when both accept
+      sessionId: "", // Empty initially, will be set when both accept
+      user1Data: JSON.stringify(user1Data), // Store for potential re-queueing
+      user2Data: JSON.stringify(user2Data), // Store for potential re-queueing
     });
     // Set expiry to 30 seconds to allow for timeout handling (15s timeout + 15s buffer)
     await redis.expire(matchId, 30);
 
-    console.log(`Match created with question: ${questionId}, waiting for acceptance`);
+    console.log(
+      `Match created with question: ${questionId}, waiting for acceptance`
+    );
 
     return match;
   }

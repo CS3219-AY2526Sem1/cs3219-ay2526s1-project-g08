@@ -26,6 +26,7 @@ export interface Match {
   matchedTopics?: string[];
   sessionId: string;
   acceptedCount?: number; // Number of users who have accepted
+  decliningUserId?: string; // ID of user who declined the match
 }
 
 export interface MatchFoundMessage {

@@ -401,6 +401,28 @@ export default function Home() {
           </DialogActions>
         </Dialog>
       )}
+
+      {match && match.status === "declined" && (
+        <Dialog open maxWidth="sm" fullWidth>
+          <DialogTitle>
+            {match.decliningUserId === userId
+              ? "Match Declined"
+              : "Match Declined by Peer"}
+          </DialogTitle>
+          <DialogContent>
+            <Alert
+              severity={match.decliningUserId === userId ? "info" : "warning"}
+            >
+              <Typography variant="body1">
+                {match.decliningUserId === userId
+                  ? "You declined the match. You can search again."
+                  : "Your peer declined the match. Searching for another match..."}
+              </Typography>
+            </Alert>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {selectedTopics.length === 0 && !isFinding && !match && (
         <Alert severity="warning" sx={{ mt: 2 }}>
           No topic selected — you may be matched with any category.
