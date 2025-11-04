@@ -8,18 +8,27 @@ export async function connectToDatabase(): Promise<Db> {
     return db;
   }
 
-  const mongoUri = process.env.MONGO_URI || "mongodb://root:password@mongo:27017/?authSource=admin";
-  const dbName = process.env.MONGO_DB_NAME || "user_service";
+  const mongoUri =
+    process.env.MONGO_URI ||
+    "mongodb://dummy:dummy@mongo:27017/?authSource=admin";
+  const dbName = "user_service";
 
-  if (!mongoUri || !dbName) {
-    throw new Error("Missing MONGO_URI or MONGO_DB_NAME environment variables");
+  if (mongoUri.includes("dummy")) {
+    throw new Error("Missing MONGO_URI environment variable");
   }
 
   try {
     client = new MongoClient(mongoUri);
     await client.connect();
     db = client.db(dbName);
-    console.log(`Connected to MongoDB database: ${dbName}`);
+    // Extract host/cluster part for logging (removes credentials)
+    let safeUri = mongoUri;
+    try {
+      const uriNoCreds = mongoUri.replace(/:\/\/.*@/, "://");
+      const match = uriNoCreds.match(/^(mongodb(?:\+srv)?:\/\/[^/?]+)/);
+      safeUri = match ? match[1] : uriNoCreds;
+    } catch {}
+    console.log(`Connected to MongoDB database: user_service at ${safeUri}`);
     return db;
   } catch (error) {
     console.error("Failed to connect to MongoDB:", error);
