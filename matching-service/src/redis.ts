@@ -1,15 +1,34 @@
 import WebSocket from "ws";
+
 import { Redis } from "ioredis";
 import { activeConnections } from "./connections";
 import { deleteCollaborationSession } from "./websocket";
 import { leaveQueue } from "./queue";
 
-export const redis = new Redis({
-  host: "redis",
-  port: 6379,
-});
+// Configure Redis connection with TLS support for AWS ElastiCache
+const redisUri = process.env.REDIS_URI || "redis://redis:6379";
+const redisOptions =
+  redisUri.includes("cache.amazonaws.com") || redisUri.startsWith("rediss://")
+    ? { tls: {} }
+    : {};
 
-redis.on("connect", () => console.log("Connected to Redis"));
+export const redis = new Redis(redisUri, redisOptions);
+
+redis.on("connect", () => {
+  // Log Redis URI (without credentials) for debugging
+  let safeUri = redisUri;
+  try {
+    // Remove credentials if present (user:pass@host)
+    if (safeUri.includes("@")) {
+      const atIndex = safeUri.lastIndexOf("@");
+      const afterAt = safeUri.substring(atIndex + 1);
+      // Check if there's a protocol before credentials
+      const protocolMatch = safeUri.match(/^(rediss?:\/\/)/);
+      safeUri = protocolMatch ? protocolMatch[1] + afterAt : afterAt;
+    }
+  } catch {}
+  console.log(`Connected to Redis at ${safeUri}`);
+});
 redis.on("error", (err) => console.error("Redis error:", err));
 
 export function setupRedisSubscriber() {
