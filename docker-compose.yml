@@ -40,7 +40,7 @@ services:
     user-service:
         build: ./user-service
         env_file:
-            - user-service/.env
+            - user-service/.env.local
         container_name: user-service
         ports:
             - "3002:3002"
