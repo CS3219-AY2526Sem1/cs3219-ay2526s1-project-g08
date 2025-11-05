@@ -8,8 +8,7 @@ import { initializeRefreshTokenIndexes } from "./db/refreshToken";
 
 const app = express();
 const port = Number(process.env.PORT) || 3002;
-const isProduction = process.env.NODE_ENV === "production";
-const host = isProduction ? "0.0.0.0" : "localhost";
+const host = "0.0.0.0";
 
 app.use(express.json());
 app.use(cookieParser());
@@ -55,10 +54,7 @@ async function startServer() {
     await initializeRefreshTokenIndexes();
 
     app.listen(port, host, () => {
-      const serverUrl = isProduction
-        ? `http://${host}:${port}`
-        : `http://localhost:${port}`;
-      console.log(`User service running on ${serverUrl}`);
+      console.log(`User service running on port ${port}`);
       console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
     });
 

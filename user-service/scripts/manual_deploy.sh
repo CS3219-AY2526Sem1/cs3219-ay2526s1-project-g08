@@ -126,7 +126,6 @@ if [ "$SKIP_ENV_UPDATE" = false ]; then
             {"name": "MONGO_URI", "value": $MONGO_URI},
             {"name": "JWT_SECRET", "value": $JWT_SECRET},
             {"name": "REFRESH_TOKEN_SECRET", "value": $REFRESH_TOKEN_SECRET},
-            {"name": "NODE_ENV", "value": "production"},
             {"name": "PORT", "value": "3002"}
         ] |
         del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
