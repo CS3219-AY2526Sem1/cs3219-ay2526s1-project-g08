@@ -7,7 +7,8 @@ import { connectToDatabase, closeDatabaseConnection } from "./db/connection";
 import { initializeRefreshTokenIndexes } from "./db/refreshToken";
 
 const app = express();
-const port = process.env.PORT || 3002;
+const port = Number(process.env.PORT) || 3002;
+const host = "0.0.0.0";
 
 app.use(express.json());
 app.use(cookieParser());
@@ -52,8 +53,9 @@ async function startServer() {
     // Initialize refresh token indexes
     await initializeRefreshTokenIndexes();
 
-    app.listen(port, () => {
-      console.log(`User service running at http://localhost:${port}`);
+    app.listen(port, host, () => {
+      console.log(`User service running on port ${port}`);
+      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
     });
 
     // Graceful shutdown

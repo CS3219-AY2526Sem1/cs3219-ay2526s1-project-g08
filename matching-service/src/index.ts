@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { startWebSocketServer } from "./websocket";
 import { setupRedisSubscriber } from "./redis";
 
