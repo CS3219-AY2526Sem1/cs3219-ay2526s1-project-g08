@@ -5,8 +5,8 @@ import { deleteCollaborationSession } from "./websocket";
 import { leaveQueue } from "./queue";
 
 export const redis = new Redis({
-  host: "redis",
-  port: 6379,
+  host: process.env.REDIS_HOST,
+  port: parseInt(process.env.REDIS_PORT || '6379')
 });
 
 redis.on("connect", () => console.log("Connected to Redis"));
