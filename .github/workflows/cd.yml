@@ -1,0 +1,117 @@
+name: Deploy to AWS ECS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECS_CLUSTER: peerprep-cluster
+
+jobs:
+  # Single job that builds and deploys all services
+  deploy-services:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Build and push all services
+      # - name: Build and push user-service
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     docker build -t $ECR_REGISTRY/peerprep-user-service:$IMAGE_TAG ./user-service
+      #     docker tag $ECR_REGISTRY/peerprep-user-service:$IMAGE_TAG $ECR_REGISTRY/peerprep-user-service:latest
+      #     docker push $ECR_REGISTRY/peerprep-user-service:$IMAGE_TAG
+      #     docker push $ECR_REGISTRY/peerprep-user-service:latest
+
+      # - name: Build and push question-service
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     docker build -t $ECR_REGISTRY/peerprep-question-service:$IMAGE_TAG ./question-service
+      #     docker tag $ECR_REGISTRY/peerprep-question-service:$IMAGE_TAG $ECR_REGISTRY/peerprep-question-service:latest
+      #     docker push $ECR_REGISTRY/peerprep-question-service:$IMAGE_TAG
+      #     docker push $ECR_REGISTRY/peerprep-question-service:latest
+
+      - name: Build and push collaboration-service
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/peerprep-collaboration-service:$IMAGE_TAG ./collaboration-service
+          docker tag $ECR_REGISTRY/peerprep-collaboration-service:$IMAGE_TAG $ECR_REGISTRY/peerprep-collaboration-service:latest
+          docker push $ECR_REGISTRY/peerprep-collaboration-service:$IMAGE_TAG
+          docker push $ECR_REGISTRY/peerprep-collaboration-service:latest
+
+      # - name: Build and push matching-service
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     docker build -t $ECR_REGISTRY/peerprep-matching-service:$IMAGE_TAG ./matching-service
+      #     docker tag $ECR_REGISTRY/peerprep-matching-service:$IMAGE_TAG $ECR_REGISTRY/peerprep-matching-service:latest
+      #     docker push $ECR_REGISTRY/peerprep-matching-service:$IMAGE_TAG
+      #     docker push $ECR_REGISTRY/peerprep-matching-service:latest
+
+      # Force new deployment for all services
+      # - name: Force new deployment
+      #   run: |
+      #     aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service peerprep-user-service --force-new-deployment
+      #     aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service peerprep-question-service --force-new-deployment
+      #     aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service peerprep-collaboration-service --force-new-deployment
+      #     aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service peerprep-matching-service --force-new-deployment
+
+  # Separate job for frontend deployment to S3/CloudFront
+  # deploy-frontend:
+  #   runs-on: ubuntu-latest
+    
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: '18'
+  #         cache: 'npm'
+  #         cache-dependency-path: web-server/package-lock.json
+
+  #     - name: Install and build
+  #       run: |
+  #         cd web-server
+  #         npm ci
+  #         npm run build
+
+  #     - name: Configure AWS credentials
+  #       uses: aws-actions/configure-aws-credentials@v4
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: ${{ env.AWS_REGION }}
+
+  #     - name: Deploy to S3
+  #       run: |
+  #         aws s3 sync web-server/dist s3://${{ secrets.S3_BUCKET_NAME }} --delete --cache-control max-age=31536000,public
+
+  #     - name: Invalidate CloudFront
+  #       if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID != '' }}
+  #       run: |
+  #         aws cloudfront create-invalidation --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} --paths "/*"
