@@ -62,10 +62,23 @@ export const useMatchmaking = (
           console.log("Match declined:", msg.match.id);
           const decliningUserId = msg.match.decliningUserId;
           const wasDeclinedByMe = decliningUserId === userId;
-          const declinedMatchId = msg.match.id;
-          const reason = msg.reason;
+          //const declinedMatchId = msg.match.id;
+          //const reason = msg.reason;
 
           setMatch(msg.match);
+
+          if (msg.reason === "timeout") {
+            stopSearching();
+            setError("Match timed out."); // Message simplified
+          } else if (wasDeclinedByMe) {
+            //declined. Layout shows dialog and waits for resetMatch.
+            setError("You declined the match.");
+          } else {
+            setError("Match was declined by peer."); // Only set error state
+            stopSearching(); // Ensure search timer is off
+          }
+
+          {/*
 
           // Handle timeout - both users removed from queue
           if (reason === "timeout") {
@@ -137,7 +150,7 @@ export const useMatchmaking = (
                 return currentMatch;
               });
             }, 3000);
-          }
+          } */}
 
           setIsAccepting(false);
         }
@@ -197,8 +210,8 @@ export const useMatchmaking = (
     if (!match) return;
     try {
       await sendDecline(match.id);
-      setMatch(null);
-      stopSearching();
+      //setMatch(null);
+      //stopSearching();
     } catch (e) {
       setError("Failed to decline match");
     }
