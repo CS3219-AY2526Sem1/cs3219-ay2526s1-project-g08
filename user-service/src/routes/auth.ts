@@ -1,8 +1,7 @@
 import express from "express";
 import { CLIENT_ID, CLIENT_SECRET } from "../config/github";
 import { signAccessToken } from "../utils/jwt";
-import { getDb } from "../utils/mongo";
-import { parseExpiry } from "../utils/expiry";
+import { getDatabase } from "../db/connection";
 import {
   storeRefreshToken,
   verifyRefreshToken,
@@ -11,6 +10,11 @@ import {
 import { getUserById } from "../db/user";
 
 const router = express.Router();
+
+// Token expiry constants (in ms)
+const ACCESS_TOKEN_MS = 60 * 60 * 1000; // 1 hour
+const REFRESH_TOKEN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const REFRESH_TOKEN_DAYS = 30;
 
 router.get("/github", (req, res) => {
   const redirectUri = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&scope=read:user&redirect_uri=http://localhost:3002/auth/callback`;
@@ -49,7 +53,7 @@ router.get("/callback", async (req, res) => {
     const githubUser = await userResp.json();
 
     // Store/update user in MongoDB
-    const db = await getDb();
+    const db = getDatabase();
     await db.collection("users").updateOne(
       { userId: githubUser.login },
       {
@@ -75,16 +79,10 @@ router.get("/callback", async (req, res) => {
       role: userRole,
     });
 
-    // Parse expiry from environment variables
-    const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || "1h";
-    const refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY || "30d";
-
-    const accessTokenMs = parseExpiry(accessTokenExpiry, 60 * 60 * 1000); // default 1 hour
-    const refreshTokenMs = parseExpiry(
-      refreshTokenExpiry,
-      30 * 24 * 60 * 60 * 1000
-    ); // default 30 days
-    const refreshTokenDays = refreshTokenMs / (24 * 60 * 60 * 1000);
+    // Use expiry constants
+    const accessTokenMs = ACCESS_TOKEN_MS;
+    const refreshTokenMs = REFRESH_TOKEN_MS;
+    const refreshTokenDays = REFRESH_TOKEN_DAYS;
 
     // Generate and store refresh token (long-lived)
     const refreshToken = await storeRefreshToken(
@@ -199,9 +197,8 @@ router.post("/refresh", async (req, res) => {
       role: user.role,
     });
 
-    // Parse access token expiry from environment
-    const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY || "1h";
-    const accessTokenMs = parseExpiry(accessTokenExpiry, 60 * 60 * 1000); // default 1 hour
+    // Use expiry constant
+    const accessTokenMs = ACCESS_TOKEN_MS;
 
     // Set new access token cookie
     res.cookie("token", newAccessToken, {
