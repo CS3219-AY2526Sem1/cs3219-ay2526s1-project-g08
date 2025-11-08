@@ -36,11 +36,11 @@
                                                      },
                                                      {
                                                          "name":  "MONGO_URI",
-                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:MONGO_URI::"
+                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:MONGO_URI_COLLABORATION::"
                                                      },
                                                      {
-                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:MONGO_URI::",
-                                                         "name":  "MONGODB_URI"
+                                                         "name":  "MONGODB_URI",
+                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:MONGO_URI_COLLABORATION::"
                                                      }
                                                  ],
                                      "ulimits":  [
