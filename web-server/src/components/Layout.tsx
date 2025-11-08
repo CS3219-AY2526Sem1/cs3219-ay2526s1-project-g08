@@ -40,15 +40,21 @@ export default function Layout() {
     declineMatch,
     isAccepting,
     resetMatch, //for clearing declined state
+    currentUserId, //to use in acceptance msg 
   } = useMatchmakingContext();
+
+  const peerId =
+  match?.users.find((id) => id !== currentUserId) ??
+  match?.users[0] ??
+  "Another user";
+
+  const declinedByMe = match?.decliningUserId === currentUserId;
 
   const [matchTimeLeft, setMatchTimeLeft] = useState(15);
 
   const menuItems = [
     { path: "/home", label: "Home", icon: <TbHome /> },
     { path: "/profile", label: "Profile", icon: <TbUser /> },
-    //{ path: "/home", label: "Home", icon: <TbHome /> }, //added 
-    //{ path: "/profile", label: "Profile", icon: <TbUser /> }, //added 
   ];
 
   // Add admin dashboard for admin users
@@ -204,10 +210,11 @@ export default function Layout() {
               <Box>
                 <Typography variant="subtitle2" color="text.secondary" gutterBottom>Matched with:</Typography>
                 <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                  {match.users.find((id) => id !== (user?.userId || "user123")) || "Another user"}
+                  {/* {match.users.find((id) => id !== (user?.userId || "user123")) || "Another user"} */}
+                  {peerId}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  User ID: {match.users.find((id) => id !== (user?.userId || "user123"))}
+                  User ID: {peerId} {/* {match.users.find((id) => id !== (user?.userId || "user123"))}  */} 
                 </Typography>
               </Box>
 
@@ -251,25 +258,25 @@ export default function Layout() {
         </Dialog>
       )}
 
-      {/* ➕ ADD: Persistent Match Declined/Timed Out Dialog */}
+      {/* ADD: Persistent Match Declined/Timed Out Dialog */}
       {match && match.status === "declined" && (
         <Dialog open maxWidth="sm" fullWidth>
           <DialogTitle>
-            {match.decliningUserId === (user?.userId || "user123")
+            {declinedByMe 
               ? "Match Declined"
               : "Match Ended"}
           </DialogTitle>
           <DialogContent>
-            <Alert severity={match.decliningUserId === (user?.userId || "user123") ? "info" : "warning"} >
+            <Alert severity={declinedByMe ? "info" : "warning"} >
               <Typography variant="body1">
-                {match.decliningUserId === (user?.userId || "user123")
+                {declinedByMe
                   ? "You declined the match. Click close to search again."
                   : "The match was declined by your peer or timed out. Click close to search again."}
               </Typography>
             </Alert>
           </DialogContent>
           <DialogActions>
-            {/* ⚠️ NOTE: Use resetMatch from context to clear state */}
+            {/* NOTE: Use resetMatch from context to clear state */}
             <Button onClick={resetMatch} autoFocus>
               Close
             </Button>
