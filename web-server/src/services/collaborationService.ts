@@ -8,7 +8,7 @@ export async function createSession(
   language: string,
   authToken: string
 ) {
-  const response = await fetch(config.api.collaborationService, {
+  const response = await fetch(`${config.api.collaborationService}/sessions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

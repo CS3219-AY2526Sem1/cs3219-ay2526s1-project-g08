@@ -12,11 +12,18 @@ class SessionService {
     language,
   }) {
     try {
-      // Check if any participant already has an active session
+      // Clean up any existing active sessions for participants
+      // This handles cases where previous sessions weren't properly terminated
+      // (e.g., user refreshed page, network disconnect, or declined before connecting)
       for (const userId of participants) {
         const existingSession = await Session.findActiveByUser(userId);
         if (existingSession) {
-          throw new Error(`User ${userId} already has an active session`);
+          logger.warn(
+            `User ${userId} has existing active session ${existingSession.sessionId}, ` +
+            `terminating it before creating new session`
+          );
+          existingSession.terminate('replaced_by_new_match');
+          await existingSession.save();
         }
       }
 

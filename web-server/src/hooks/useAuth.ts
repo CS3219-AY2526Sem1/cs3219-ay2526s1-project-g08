@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { apiFetch } from "../utils/api";
 import {
   startTokenRefreshTimer,
   stopTokenRefreshTimer,
@@ -30,7 +29,9 @@ export function useAuth() {
 
         // Fetch profile to get role information and verify session
         try {
-          const response = await apiFetch("/user/profile");
+          const response = await fetch(config.auth.profile, {
+            credentials: "include",
+          });
 
           if (response.ok) {
             const userData = await response.json();
@@ -110,7 +111,7 @@ export function useAuth() {
     } catch (err) {
       console.error("Error fetching token:", err);
     }
-    
+
     return null;
   };
 
@@ -118,5 +119,15 @@ export function useAuth() {
   const isLoggedIn = !!user;
   const isAdmin = profile?.role === "admin";
 
-  return { user, login, logout, isLoggedIn, isAdmin, profile, isLoading, token, getToken };
+  return {
+    user,
+    login,
+    logout,
+    isLoggedIn,
+    isAdmin,
+    profile,
+    isLoading,
+    token,
+    getToken,
+  };
 }
