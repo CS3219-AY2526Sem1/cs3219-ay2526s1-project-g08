@@ -1,0 +1,34 @@
+{
+  "family": "matching-service",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::672832942376:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "matching-service",
+      "image": "672832942376.dkr.ecr.ap-southeast-1.amazonaws.com/matching-service:latest",
+      "portMappings": [
+        {
+          "containerPort": 3001,
+          "protocol": "tcp"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "REDIS_URI",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:REDIS_URI::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/matching-service",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

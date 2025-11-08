@@ -1,0 +1,104 @@
+{
+    "containerDefinitions":  [
+                                 {
+                                     "name":  "user-service",
+                                     "image":  "672832942376.dkr.ecr.ap-southeast-1.amazonaws.com/user-service:latest",
+                                     "cpu":  0,
+                                     "portMappings":  [
+                                                          {
+                                                              "containerPort":  3002,
+                                                              "hostPort":  3002,
+                                                              "protocol":  "tcp",
+                                                              "name":  "user-service-3002-tcp",
+                                                              "appProtocol":  "http"
+                                                          }
+                                                      ],
+                                     "essential":  true,
+                                     "environment":  [
+                                                         {
+                                                             "name":  "NODE_ENV",
+                                                             "value":  "production"
+                                                         },
+                                                         {
+                                                             "name":  "OAUTH_REDIRECT_URI",
+                                                             "value":  "http://peerprep-alb-1487410036.ap-southeast-1.elb.amazonaws.com/user/auth/callback"
+                                                         },
+                                                         {
+                                                             "name":  "PORT",
+                                                             "value":  "3002"
+                                                         },
+                                                         {
+                                                             "name":  "FRONTEND_URL",
+                                                             "value":  "http://peerprep-alb-1487410036.ap-southeast-1.elb.amazonaws.com"
+                                                         }
+                                                     ],
+                                     "environmentFiles":  [
+
+                                                          ],
+                                     "mountPoints":  [
+
+                                                     ],
+                                     "volumesFrom":  [
+
+                                                     ],
+                                     "secrets":  [
+                                                     {
+                                                         "name":  "JWT_SECRET",
+                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:JWT_SECRET::"
+                                                     },
+                                                     {
+                                                         "name":  "REFRESH_TOKEN_SECRET",
+                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:REFRESH_TOKEN_SECRET::"
+                                                     },
+                                                     {
+                                                         "name":  "MONGO_URI",
+                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:MONGO_URI::"
+                                                     },
+                                                     {
+                                                         "name":  "OAUTH_CLIENT_ID",
+                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:OAUTH_CLIENT_ID::"
+                                                     },
+                                                     {
+                                                         "name":  "OAUTH_CLIENT_SECRET",
+                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:OAUTH_CLIENT_SECRET::"
+                                                     }
+                                                 ],
+                                     "ulimits":  [
+
+                                                 ],
+                                     "logConfiguration":  {
+                                                              "logDriver":  "awslogs",
+                                                              "options":  {
+                                                                              "awslogs-group":  "/ecs/user-service",
+                                                                              "awslogs-create-group":  "true",
+                                                                              "awslogs-region":  "ap-southeast-1",
+                                                                              "awslogs-stream-prefix":  "ecs"
+                                                                          },
+                                                              "secretOptions":  [
+
+                                                                                ]
+                                                          },
+                                     "systemControls":  [
+
+                                                        ]
+                                 }
+                             ],
+    "family":  "user-service",
+    "executionRoleArn":  "arn:aws:iam::672832942376:role/ecsTaskExecutionRole",
+    "networkMode":  "awsvpc",
+    "volumes":  [
+
+                ],
+    "placementConstraints":  [
+
+                             ],
+    "runtimePlatform":  {
+                            "cpuArchitecture":  "X86_64",
+                            "operatingSystemFamily":  "LINUX"
+                        },
+    "requiresCompatibilities":  [
+                                    "FARGATE"
+                                ],
+    "cpu":  "1024",
+    "memory":  "3072"
+}

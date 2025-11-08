@@ -1,0 +1,84 @@
+{
+    "containerDefinitions":  [
+                                 {
+                                     "name":  "collaboration-service",
+                                     "image":  "672832942376.dkr.ecr.ap-southeast-1.amazonaws.com/collaboration-service:latest",
+                                     "cpu":  0,
+                                     "portMappings":  [
+                                                          {
+                                                              "containerPort":  3004,
+                                                              "hostPort":  3004,
+                                                              "protocol":  "tcp",
+                                                              "name":  "collaboration-service-3004-tcp",
+                                                              "appProtocol":  "http"
+                                                          }
+                                                      ],
+                                     "essential":  true,
+                                     "environment":  [
+                                                         {
+                                                             "name":  "PORT",
+                                                             "value":  "3004"
+                                                         }
+                                                     ],
+                                     "environmentFiles":  [
+
+                                                          ],
+                                     "mountPoints":  [
+
+                                                     ],
+                                     "volumesFrom":  [
+
+                                                     ],
+                                     "secrets":  [
+                                                     {
+                                                         "name":  "JWT_SECRET",
+                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:JWT_SECRET::"
+                                                     },
+                                                     {
+                                                         "name":  "MONGO_URI",
+                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:MONGO_URI::"
+                                                     },
+                                                     {
+                                                         "valueFrom":  "arn:aws:secretsmanager:ap-southeast-1:672832942376:secret:peerprep/secrets:MONGO_URI::",
+                                                         "name":  "MONGODB_URI"
+                                                     }
+                                                 ],
+                                     "ulimits":  [
+
+                                                 ],
+                                     "logConfiguration":  {
+                                                              "logDriver":  "awslogs",
+                                                              "options":  {
+                                                                              "awslogs-group":  "/ecs/collaboration-service",
+                                                                              "awslogs-create-group":  "true",
+                                                                              "awslogs-region":  "ap-southeast-1",
+                                                                              "awslogs-stream-prefix":  "ecs"
+                                                                          },
+                                                              "secretOptions":  [
+
+                                                                                ]
+                                                          },
+                                     "systemControls":  [
+
+                                                        ]
+                                 }
+                             ],
+    "family":  "collaboration-service",
+    "executionRoleArn":  "arn:aws:iam::672832942376:role/ecsTaskExecutionRole",
+    "networkMode":  "awsvpc",
+    "volumes":  [
+
+                ],
+    "placementConstraints":  [
+
+                             ],
+    "runtimePlatform":  {
+                            "cpuArchitecture":  "X86_64",
+                            "operatingSystemFamily":  "LINUX"
+                        },
+    "requiresCompatibilities":  [
+                                    "FARGATE"
+                                ],
+    "cpu":  "1024",
+    "memory":  "3072"
+}
