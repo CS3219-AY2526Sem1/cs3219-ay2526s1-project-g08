@@ -11,6 +11,7 @@ import CollaborativeSession from "./pages/CollaborativeSession";
 import Layout from "./components/Layout";
 import AuthCallback from "./pages/AuthCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
+import HistoryPage from "./pages/HistoryPage";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -49,6 +50,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               element={
                 <ProtectedRoute>
                   <CollaborationDemo />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="history"
+              element={
+                <ProtectedRoute>
+                  <HistoryPage />
                 </ProtectedRoute>
               }
             />

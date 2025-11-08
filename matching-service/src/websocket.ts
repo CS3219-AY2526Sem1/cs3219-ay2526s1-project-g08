@@ -4,6 +4,7 @@ import { findMatch } from "./matchmaking";
 import { User, ExtendedWebSocket } from "./types";
 import { redis } from "./redis";
 import { activeConnections } from "./connections";
+import { recordQuestionCompletion } from "./userService";
 
 export function startWebSocketServer(port: number) {
   const wss = new WebSocket.Server({ port });
@@ -136,6 +137,18 @@ async function handleMatchAccept(matchId: string, userId: string) {
       return;
     }
 
+    console.log(`Match ${matchId} accepted. Recording history for session start.`);
+    const questionId = fullMatchData.questionId;
+        
+    // Use Promise.allSettled and fire-and-forget to ensure history recording 
+    // runs asynchronously and doesn't block the match acceptance response.
+    const recordPromises = users.map(uid => 
+        recordQuestionCompletion(uid, questionId)
+    );
+
+    Promise.allSettled(recordPromises)
+        .then(() => console.log(`[History] All record attempts for match ${matchId} finished.`));
+    
     // Store sessionId and update status
     await redis.hset(matchId, { status: "accepted", sessionId: sessionId });
 
