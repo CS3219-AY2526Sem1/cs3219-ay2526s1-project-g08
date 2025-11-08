@@ -7,29 +7,60 @@ import { leaveQueue } from "./queue";
 
 // Configure Redis connection with TLS support for AWS ElastiCache
 const redisUri = process.env.REDIS_URI || "redis://redis:6379";
-const redisOptions =
-  redisUri.includes("cache.amazonaws.com") || redisUri.startsWith("rediss://")
-    ? { tls: {} }
-    : {};
 
-export const redis = new Redis(redisUri, redisOptions);
+// Parse the Redis URI to ensure correct format
+let redisConfig: any;
+try {
+  const url = new URL(redisUri);
+  
+  redisConfig = {
+    host: url.hostname,
+    port: parseInt(url.port) || 6379,
+    // Enable TLS for AWS ElastiCache (rediss:// protocol or .amazonaws.com hostname)
+    ...(url.protocol === 'rediss:' || url.hostname.includes('cache.amazonaws.com')
+      ? { tls: { rejectUnauthorized: false } }
+      : {}),
+    // Add username/password if present in URI
+    ...(url.username ? { username: url.username } : {}),
+    ...(url.password ? { password: url.password } : {}),
+    // Connection retry strategy
+    retryStrategy: (times: number) => {
+      const delay = Math.min(times * 50, 2000);
+      console.log(`Redis connection attempt ${times}, retrying in ${delay}ms`);
+      return delay;
+    },
+    maxRetriesPerRequest: 3,
+  };
+  
+  console.log(`Redis configuration: ${url.protocol}//${url.hostname}:${redisConfig.port} (TLS: ${!!redisConfig.tls})`);
+} catch (error) {
+  console.error('Error parsing REDIS_URI:', error);
+  console.error('REDIS_URI value:', redisUri);
+  throw new Error('Invalid REDIS_URI format. Expected format: redis://host:port or rediss://host:port');
+}
+
+export const redis = new Redis(redisConfig);
 
 redis.on("connect", () => {
-  // Log Redis URI (without credentials) for debugging
-  let safeUri = redisUri;
-  try {
-    // Remove credentials if present (user:pass@host)
-    if (safeUri.includes("@")) {
-      const atIndex = safeUri.lastIndexOf("@");
-      const afterAt = safeUri.substring(atIndex + 1);
-      // Check if there's a protocol before credentials
-      const protocolMatch = safeUri.match(/^(rediss?:\/\/)/);
-      safeUri = protocolMatch ? protocolMatch[1] + afterAt : afterAt;
-    }
-  } catch {}
-  console.log(`Connected to Redis at ${safeUri}`);
+  console.log(`✅ Connected to Redis at ${redisConfig.host}:${redisConfig.port} (TLS: ${!!redisConfig.tls})`);
 });
-redis.on("error", (err) => console.error("Redis error:", err));
+
+redis.on("error", (err) => {
+  console.error("❌ Redis error:", err);
+  console.error("Redis config:", {
+    host: redisConfig.host,
+    port: redisConfig.port,
+    tls: !!redisConfig.tls,
+  });
+});
+
+redis.on("reconnecting", (delay: number) => {
+  console.log(`🔄 Reconnecting to Redis in ${delay}ms...`);
+});
+
+redis.on("close", () => {
+  console.log("📴 Redis connection closed");
+});
 
 export function setupRedisSubscriber() {
   const subscriber = redis.duplicate();
