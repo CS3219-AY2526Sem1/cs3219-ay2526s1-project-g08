@@ -4,6 +4,7 @@ import {
   startTokenRefreshTimer,
   stopTokenRefreshTimer,
 } from "../utils/tokenRefresh";
+import config from "../config/environment";
 
 interface UserProfile {
   userId: string;
@@ -43,7 +44,7 @@ export function useAuth() {
 
             // Fetch token for use with other services
             try {
-              const tokenResponse = await fetch("http://localhost:3002/user/token", {
+              const tokenResponse = await fetch(config.auth.token, {
                 credentials: "include",
               });
               if (tokenResponse.ok) {
@@ -98,7 +99,7 @@ export function useAuth() {
     }
 
     try {
-      const response = await fetch("http://localhost:3002/user/token", {
+      const response = await fetch(config.auth.token, {
         credentials: "include",
       });
       if (response.ok) {

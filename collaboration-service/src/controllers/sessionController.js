@@ -71,8 +71,10 @@ router.get('/sessions/:sessionId', authenticateToken, async (req, res) => {
     }
 
     // Verify user is authorized to view this session
+    console.log('Authorization check - req.userId:', req.userId, 'participants:', session.participants);
     if (!session.participants.includes(req.userId)) {
       // 403 Forbidden
+      console.log('Authorization failed - user not in participants');
       return res.status(403).json({
         success: false,
         message: 'Not authorized to view this session'

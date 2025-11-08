@@ -1,6 +1,7 @@
 import * as Y from 'yjs';
 import { MonacoBinding } from 'y-monaco';
 import io from 'socket.io-client';
+import config from '../config/environment';
 
 class YjsCollaboration {
   constructor() {
@@ -15,8 +16,9 @@ class YjsCollaboration {
     this.ydoc = new Y.Doc();
     const ytext = this.ydoc.getText('code');
 
-    const socketUrl = 'ws://localhost:3004';
+    const socketUrl = config.ws.collaborationService;
     this.socket = io(socketUrl, {
+      path: '/collaboration/socket.io',  // Must match server path configuration
       auth: { token: authToken },
       query: { sessionId: sessionId },
       transports: ['websocket', 'polling']
@@ -36,6 +38,15 @@ class YjsCollaboration {
   }
 
   setupEventHandlers() {
+    this.socket.on('connect', () => {
+      console.log('✅ Socket.IO connected successfully!', this.socket.id);
+      this.synced = false;
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('❌ Socket.IO connection error:', error.message);
+    });
+
     this.socket.on('session_state', (data) => {
       console.log('Received session state:', data);
       this.emit('session_state', data);

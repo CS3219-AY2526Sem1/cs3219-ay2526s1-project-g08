@@ -1,10 +1,16 @@
-const Session = require('../models/sessionModel');
-const logger = require('../utils/logger');
-const { v4: uuidv4 } = require('uuid');
+const Session = require("../models/sessionModel");
+const logger = require("../utils/logger");
+const { v4: uuidv4 } = require("uuid");
 
 class SessionService {
   // Create new collaboration session
-  async createSession({ participants, questionId, difficulty, topics, language }) {
+  async createSession({
+    participants,
+    questionId,
+    difficulty,
+    topics,
+    language,
+  }) {
     try {
       // Check if any participant already has an active session
       for (const userId of participants) {
@@ -25,11 +31,10 @@ class SessionService {
 
       await session.save(); // Save document to DB
       logger.info(`Session created: ${session.sessionId}`);
-      
-      return session;
 
+      return session;
     } catch (error) {
-      logger.error('Create session error:', error);
+      logger.error("Create session error:", error);
       throw error;
     }
   }
@@ -39,7 +44,7 @@ class SessionService {
     try {
       return await Session.findActiveById(sessionId);
     } catch (error) {
-      logger.error('Get session error:', error);
+      logger.error("Get session error:", error);
       throw error;
     }
   }
@@ -49,21 +54,20 @@ class SessionService {
     try {
       const session = await Session.findActiveById(sessionId);
       if (!session) {
-        throw new Error('Session not found or not active');
+        throw new Error("Session not found or not active");
       }
 
       if (!session.participants.includes(userId)) {
-        throw new Error('User not authorized for this session');
+        throw new Error("User not authorized for this session");
       }
 
       session.addUser(userId);
       await session.save();
-      
+
       logger.info(`User ${userId} joined session ${sessionId}`);
       return session;
-
     } catch (error) {
-      logger.error('Join session error:', error);
+      logger.error("Join session error:", error);
       throw error;
     }
   }
@@ -78,18 +82,17 @@ class SessionService {
 
       session.removeUser(userId);
       await session.save();
-      
+
       logger.info(`User ${userId} left session ${sessionId}`);
       return session;
-
     } catch (error) {
-      logger.error('Leave session error:', error);
+      logger.error("Leave session error:", error);
       throw error;
     }
   }
 
   // Terminate session
-  async terminateSession(sessionId, reason = 'manual') {
+  async terminateSession(sessionId, reason = "manual") {
     try {
       const session = await Session.findActiveById(sessionId);
       if (!session) {
@@ -101,9 +104,8 @@ class SessionService {
 
       logger.info(`Session terminated: ${sessionId}, reason: ${reason}`);
       return true;
-
     } catch (error) {
-      logger.error('Terminate session error:', error);
+      logger.error("Terminate session error:", error);
       throw error;
     }
   }
@@ -113,7 +115,7 @@ class SessionService {
     try {
       return await Session.findActiveByUser(userId);
     } catch (error) {
-      logger.error('Get user session error:', error);
+      logger.error("Get user session error:", error);
       return null;
     }
   }
@@ -123,7 +125,7 @@ class SessionService {
     try {
       return await Session.getActiveSessions();
     } catch (error) {
-      logger.error('Get active sessions error:', error);
+      logger.error("Get active sessions error:", error);
       return [];
     }
   }
@@ -133,18 +135,17 @@ class SessionService {
     try {
       const [totalSessions, activeSessions] = await Promise.all([
         Session.countDocuments(),
-        Session.countDocuments({ status: 'active' })
+        Session.countDocuments({ status: "active" }),
       ]);
 
       return {
         totalSessions,
         activeSessions,
         terminatedSessions: totalSessions - activeSessions,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
-
     } catch (error) {
-      logger.error('Get session stats error:', error);
+      logger.error("Get session stats error:", error);
       return null;
     }
   }

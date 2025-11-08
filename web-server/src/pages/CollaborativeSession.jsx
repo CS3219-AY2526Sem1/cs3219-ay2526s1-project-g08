@@ -1,14 +1,15 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import CollaborativeEditor from '../components/CollaborativeEditor';
+import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useAuth } from "../hooks/useAuth";
+import CollaborativeEditor from "../components/CollaborativeEditor";
+import config from "../config/environment";
 
 function CollaborativeSession() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const { getToken, isLoggedIn, isLoading } = useAuth();
-  const [questionId, setQuestionId] = useState('');
-  const [language, setLanguage] = useState('python');
+  const [questionId, setQuestionId] = useState("");
+  const [language, setLanguage] = useState("python");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [authToken, setAuthToken] = useState(null);
@@ -21,8 +22,8 @@ function CollaborativeSession() {
 
     // Redirect to login if not authenticated
     if (!isLoggedIn) {
-      console.log('Redirecting to login - not authenticated');
-      navigate('/');
+      console.log("Redirecting to login - not authenticated");
+      navigate("/");
       return;
     }
 
@@ -30,7 +31,7 @@ function CollaborativeSession() {
       try {
         const token = await getToken();
         if (!token) {
-          setError('Authentication required');
+          setError("Authentication required");
           setLoading(false);
           return;
         }
@@ -38,23 +39,26 @@ function CollaborativeSession() {
         // Store the token in state for use with CollaborativeEditor
         setAuthToken(token);
 
-        const response = await fetch(`http://localhost:3004/api/collaboration/sessions/${sessionId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
+        const response = await fetch(
+          `${config.api.collaborationService}/sessions/${sessionId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
           }
-        });
+        );
 
         if (response.ok) {
           const data = await response.json();
           setQuestionId(data.data.questionId);
           setLanguage(data.data.language);
         } else if (response.status === 404) {
-          setError('Session not found');
+          setError("Session not found");
         } else {
-          setError('Failed to load session');
+          setError("Failed to load session");
         }
       } catch (err) {
-        setError('Connection error');
+        setError("Connection error");
       } finally {
         setLoading(false);
       }
@@ -63,14 +67,14 @@ function CollaborativeSession() {
     if (sessionId) {
       fetchSessionData();
     } else {
-      setError('Invalid session ID');
+      setError("Invalid session ID");
       setLoading(false);
     }
   }, [sessionId, isLoggedIn, isLoading, navigate]);
 
   if (loading) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
+      <div style={{ padding: "20px", textAlign: "center" }}>
         <h2>Loading session...</h2>
         <p>Session ID: {sessionId}</p>
       </div>
@@ -79,18 +83,18 @@ function CollaborativeSession() {
 
   if (error) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
+      <div style={{ padding: "20px", textAlign: "center" }}>
         <h2>Error</h2>
         <p>{error}</p>
-        <button 
-          onClick={() => navigate('/home')}
+        <button
+          onClick={() => navigate("/home")}
           style={{
-            padding: '10px 20px',
-            backgroundColor: '#007acc',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
+            padding: "10px 20px",
+            backgroundColor: "#007acc",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: "pointer",
           }}
         >
           Back to Home
@@ -100,7 +104,7 @@ function CollaborativeSession() {
   }
 
   return (
-    <CollaborativeEditor 
+    <CollaborativeEditor
       sessionId={sessionId}
       authToken={authToken}
       questionId={questionId}

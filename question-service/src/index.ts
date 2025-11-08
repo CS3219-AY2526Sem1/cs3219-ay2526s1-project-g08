@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3003;
 // Middleware
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
     credentials: true,
   })
 );
@@ -27,7 +27,12 @@ app.get("/", (_req, res) => {
   res.send("Question Service is running!");
 });
 
-app.use("/api/questions", questionRoutes);
+// Health check endpoint for ALB
+app.get("/questions/health", (_req, res) => {
+  res.status(200).json({ status: "healthy" });
+});
+
+app.use("/questions", questionRoutes);
 
 // DB + server start
 connectDB().then(() => {

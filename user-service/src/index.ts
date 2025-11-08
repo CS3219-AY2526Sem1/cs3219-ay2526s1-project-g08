@@ -37,9 +37,28 @@ app.use((req, res, next) => {
   }
 });
 
-// Routes
-app.use("/auth", authRoutes);
-app.use("/user", userRoutes);
+// Health check endpoint for ALB (must be before route mounting)
+app.get("/user/health", (req, res) => {
+  console.log(`Health check received from ${req.ip}`);
+  res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
+});
+
+// Environment-aware routing
+// Local development: /auth and /user (no prefix)
+// AWS deployment: /user/auth and /user (ALB routes /user/* to this service)
+const isLocalDevelopment = process.env.NODE_ENV !== 'production';
+
+if (isLocalDevelopment) {
+  // Local development - no /user prefix
+  app.use("/auth", authRoutes);
+  app.use("/", userRoutes);
+  console.log("Routes configured for LOCAL development (no /user prefix)");
+} else {
+  // AWS deployment - with /user prefix
+  app.use("/user/auth", authRoutes);
+  app.use("/user", userRoutes);
+  console.log("Routes configured for AWS deployment (with /user prefix)");
+}
 
 app.get("/", (_req, res) => {
   res.send("User Service running");

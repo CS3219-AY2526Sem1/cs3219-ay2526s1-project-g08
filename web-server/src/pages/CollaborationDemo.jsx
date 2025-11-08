@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import config from '../config/environment';
 
 function CollaborationDemo() {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ function CollaborationDemo() {
       }
 
       // Create a new session through your API
-      const response = await fetch('http://localhost:3004/api/collaboration/sessions', {
+      const response = await fetch(config.api.collaborationService, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

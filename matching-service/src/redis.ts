@@ -12,12 +12,13 @@ const redisUri = process.env.REDIS_URI || "redis://redis:6379";
 let redisConfig: any;
 try {
   const url = new URL(redisUri);
-  
+
   redisConfig = {
     host: url.hostname,
     port: parseInt(url.port) || 6379,
     // Enable TLS for AWS ElastiCache (rediss:// protocol or .amazonaws.com hostname)
-    ...(url.protocol === 'rediss:' || url.hostname.includes('cache.amazonaws.com')
+    ...(url.protocol === "rediss:" ||
+    url.hostname.includes("cache.amazonaws.com")
       ? { tls: { rejectUnauthorized: false } }
       : {}),
     // Add username/password if present in URI
@@ -31,18 +32,28 @@ try {
     },
     maxRetriesPerRequest: 3,
   };
-  
-  console.log(`Redis configuration: ${url.protocol}//${url.hostname}:${redisConfig.port} (TLS: ${!!redisConfig.tls})`);
+
+  console.log(
+    `Redis configuration: ${url.protocol}//${url.hostname}:${
+      redisConfig.port
+    } (TLS: ${!!redisConfig.tls})`
+  );
 } catch (error) {
-  console.error('Error parsing REDIS_URI:', error);
-  console.error('REDIS_URI value:', redisUri);
-  throw new Error('Invalid REDIS_URI format. Expected format: redis://host:port or rediss://host:port');
+  console.error("Error parsing REDIS_URI:", error);
+  console.error("REDIS_URI value:", redisUri);
+  throw new Error(
+    "Invalid REDIS_URI format. Expected format: redis://host:port or rediss://host:port"
+  );
 }
 
 export const redis = new Redis(redisConfig);
 
 redis.on("connect", () => {
-  console.log(`✅ Connected to Redis at ${redisConfig.host}:${redisConfig.port} (TLS: ${!!redisConfig.tls})`);
+  console.log(
+    `✅ Connected to Redis at ${redisConfig.host}:${
+      redisConfig.port
+    } (TLS: ${!!redisConfig.tls})`
+  );
 });
 
 redis.on("error", (err) => {

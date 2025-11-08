@@ -8,6 +8,7 @@ const yjsDocumentManager = require('../services/yjsDocumentManager');
 class SocketServer {
   constructor(httpServer) {
     this.io = new Server(httpServer, {
+      path: '/collaboration/socket.io',  // Match ALB routing and client connection path
       cors: {
         origin: process.env.FRONTEND_URL || 'http://localhost:3000',
         methods: ['GET', 'POST']
