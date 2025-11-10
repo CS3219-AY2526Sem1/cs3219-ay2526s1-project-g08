@@ -9,7 +9,7 @@ services:
       - /app/node_modules  # Don't overwrite node_modules
     environment:
       - NODE_ENV=development
-      - MONGODB_URI=mongodb://mongo:27017/collab
+      - MONGO_URI=mongodb://mongo:27017/collab
       - JWT_SECRET=${JWT_SECRET} # Use environment variable for JWT secret
       - LOG_LEVEL=debug
     depends_on:
