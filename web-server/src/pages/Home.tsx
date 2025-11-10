@@ -10,16 +10,12 @@ import {
   TextField,
   Alert,
   Stack,
-  //Dialog,
-  //DialogTitle,
-  //DialogContent,
-  //DialogActions,
   Chip,
   OutlinedInput,
   SelectChangeEvent,
   Divider,
 } from "@mui/material";
-//import { useMatchmaking } from "../hooks/useMatchmaking"; NEED TO CHECK IF NEEDED
+
 import { getAllTopics } from "../services/questionService";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -29,9 +25,6 @@ export default function Home() {
   const { user } = useAuth();
 
   const [localUserId, setLocalUserId] = useState(user?.userId || "user123");
-  //const [difficulty, setDifficulty] = useState("easy");
-  //const [language, setLanguage] = useState("python");
-  //const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [localDifficulty, setLocalDifficulty] = useState("easy");
   const [localLanguage, setLocalLanguage] = useState("python");
   const [localSelectedTopics, setLocalSelectedTopics] = useState<string[]>([]);
@@ -39,7 +32,6 @@ export default function Home() {
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [loadingTopics, setLoadingTopics] = useState(true);
   const [lastTopicRefresh, setLastTopicRefresh] = useState<Date | null>(null);
-  //const [matchTimeLeft, setMatchTimeLeft] = useState(15);
   const navigate = useNavigate();
 
   // Update userId when user data becomes available
@@ -48,20 +40,6 @@ export default function Home() {
       setLocalUserId(user.userId);
     }
   }, [user?.userId]);
-
-  //OLD ONE
-  /*const {
-    match,
-    question,
-    findMatch,
-    cancelSearch,
-    acceptMatch,
-    declineMatch,
-    isFinding,
-    isAccepting,
-    timeProgress,
-    error,
-  } = useMatchmaking(userId, difficulty, language, selectedTopics, 60);*/
 
   const {
     match,
@@ -138,38 +116,6 @@ export default function Home() {
     } = event;
     setLocalSelectedTopics(typeof value === "string" ? value.split(",") : value);
   };
-
-  /* OLD ONE - to delete
-  // Navigate to collaboration only when match is accepted
-  useEffect(() => {
-    if (match && match.sessionId && match.status === "accepted") {
-      // Both users have accepted, navigate to session
-      console.log("Match accepted, navigating to:", match.sessionId);
-      navigate(`/collaboration/${match.sessionId}`);
-    }
-  }, [match, navigate]);
-
-  // Countdown timer for match acceptance (15 seconds)
-  useEffect(() => {
-    if (match && match.status === "pending") {
-      setMatchTimeLeft(15);
-
-      const timer = setInterval(() => {
-        setMatchTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            // Auto-decline when time runs out
-            declineMatch();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [match?.id]); // Only trigger when match ID changes
-  */
 
   //to be called by MatchMaking global 
   const handleFindMatch = async () => {
