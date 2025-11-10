@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; 
+import React, { useState, useEffect, useRef } from "react"; 
 import {
   Box,
   List,
@@ -57,6 +57,9 @@ export default function Layout() {
     { path: "/profile", label: "Profile", icon: <TbUser /> },
   ];
 
+  const pendingDeadlineRef = useRef<number | null>(null); //store remaining time left on timer
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Add admin dashboard for admin users
   if (isAdmin) {
     menuItems.splice(1, 0, {
@@ -104,25 +107,40 @@ export default function Layout() {
   }, [match, navigate]);
 
   useEffect(() => {
-    if (match && match.status === "pending") {
-      setMatchTimeLeft(15);
+    if (match?.status !== "pending") {
+      pendingDeadlineRef.current = null; 
+      setMatchTimeLeft(15); //reset timer to default 15s to give users to accept match
+      if(timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      return; 
+    }
 
-      const timer = setInterval(() => {
-        setMatchTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            //auto-decline using context action
-            declineMatch();
-            return 0;
-          }
-          return prev - 1;
-        });
+    if (!pendingDeadlineRef.current || pendingDeadlineRef.current.matchId !== match.id){
+      pendingDeadlineRef.current = { matchId: match.id, deadline: Date.now() + 15000};
+    }
+
+    const deadline = pendingDeadlineRef.current.deadline;
+
+    if(timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+        setMatchTimeLeft(remaining); 
+        if (remaining === 0){
+          clearInterval(timerRef.current!);
+          timerRef.current = null; 
+          declineMatch(); //decline match since time to accept has ended
+        }
       }, 1000);
 
-      //clean up when match component unmounts
-      return () => clearInterval(timer);
-    }
-  }, [match?.id, declineMatch]); // declineMatch is a stable context function
+      return () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      };
+  }, [match?.id, match?.status, declineMatch]); // declineMatch is a stable context function
 
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>
