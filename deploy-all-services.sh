@@ -176,7 +176,7 @@ echo "  Step 2/5: Matching Service"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-build_and_push_image "matching-service" "matching-service" "peerprep/matching-service"
+build_and_push_image "matching-service" "matching-service" "matching-service"
 deploy_service "matching-service" ".aws/task-definitions/matching-service.json"
 
 # ==============================================================================
@@ -209,7 +209,7 @@ echo "  Step 5/5: Web Server (Frontend)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
-build_and_push_image "web-server" "web-server" "peerprep/web-server"
+build_and_push_image "web-server" "web-server" "web-server"
 deploy_service "web-server" ".aws/task-definitions/web-server.json"
 echo ""
 
