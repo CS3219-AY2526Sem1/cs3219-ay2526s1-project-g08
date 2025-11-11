@@ -175,10 +175,10 @@ async function createCollaborationSession(match: any): Promise<string | null> {
     }
 
     const collaborationServiceUrl = process.env.COLLABORATION_SERVICE_URL || 
-      "http://peerprep-alb-1487410036.ap-southeast-1.elb.amazonaws.com";
+      "http://collaboration-service:3004/collaboration";
     
     const response = await fetch(
-      `${collaborationServiceUrl}/collaboration/sessions`,
+      `${collaborationServiceUrl}/sessions`,
       {
         method: "POST",
         headers: {
@@ -326,10 +326,10 @@ export async function deleteCollaborationSession(
 ): Promise<void> {
   try {
     const collaborationServiceUrl = process.env.COLLABORATION_SERVICE_URL || 
-      "http://peerprep-alb-1487410036.ap-southeast-1.elb.amazonaws.com";
+      "http://collaboration-service:3004/collaboration";
     
     const response = await fetch(
-      `${collaborationServiceUrl}/collaboration/internal/sessions/${sessionId}`,
+      `${collaborationServiceUrl}/internal/sessions/${sessionId}`,
       {
         method: "DELETE",
         headers: {

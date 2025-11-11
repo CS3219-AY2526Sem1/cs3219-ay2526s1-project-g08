@@ -12,7 +12,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      COLLABORATION_SERVICE_URL: http://collaboration-service:3004
+      COLLABORATION_SERVICE_URL: http://collaboration-service:3004/collaboration
       QUESTION_SERVICE_URL: http://question-service:3003/questions
     depends_on:
       - redis

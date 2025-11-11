@@ -1,7 +1,7 @@
 // Client for communicating with the Question Service
 
 const QUESTION_SERVICE_URL =
-  process.env.QUESTION_SERVICE_URL || "http://peerprep-alb-1487410036.ap-southeast-1.elb.amazonaws.com/questions";
+  process.env.QUESTION_SERVICE_URL || "http://question-service:3003/questions";
 
 export interface Question {
   _id: string;
