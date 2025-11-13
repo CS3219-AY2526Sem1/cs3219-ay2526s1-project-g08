@@ -198,4 +198,62 @@ router.get('/user/session', authenticateToken, async (req, res) => {
   }
 });
 
+// Get authenticated user's session history
+router.get('/user/sessions/history', authenticateToken, async (req, res) => {
+  try {
+    const { limit, offset, status } = req.query;
+    
+    const sessions = await sessionService.getUserSessionHistory(
+      req.userId,
+      { limit, offset, status }
+    );
+    
+    res.json({
+      success: true,
+      data: sessions,
+      count: sessions.length
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get specific session details from history
+router.get('/user/sessions/history/:sessionId', authenticateToken, async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    
+    const session = await sessionService.getSessionDetails(sessionId, req.userId);
+    
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: 'Session not found'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: session
+    });
+
+  } catch (err) {
+    if (err.message === 'Not authorized to view this session') {
+      return res.status(403).json({
+        success: false,
+        message: err.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 module.exports = router;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "../utils/api";
 import {
   startTokenRefreshTimer,
@@ -92,7 +92,7 @@ export function useAuth() {
   };
 
   // Function to get token on demand (useful for API calls)
-  const getToken = async (): Promise<string | null> => {
+  const getToken = useCallback(async (): Promise<string | null> => {
     if (token) {
       return token;
     }
@@ -111,7 +111,7 @@ export function useAuth() {
     }
     
     return null;
-  };
+  }, [token]);
 
   // User is logged in if we have user data in localStorage
   const isLoggedIn = !!user;
