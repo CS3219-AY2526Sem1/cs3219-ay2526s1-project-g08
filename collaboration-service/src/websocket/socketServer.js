@@ -99,6 +99,14 @@ class SocketServer {
         // Ensure Yjs document is loaded in memory
         await yjsDocumentManager.getDocument(socket.sessionId);
 
+        // 🚨 CRITICAL: Send initial Yjs state immediately on connection
+        // This prevents race conditions where client requests sync before doc is ready
+        const initialUpdate = await yjsDocumentManager.getStateAsUpdate(socket.sessionId);
+        socket.emit("yjs-sync-response", {
+          update: Array.from(initialUpdate),
+        });
+        logger.debug(`Sent initial Yjs sync to user ${socket.userId} in session ${socket.sessionId}`);
+
         // Notify other participants in the room
         socket.to(socket.sessionId).emit("user_joined", {
           userId: socket.userId,
