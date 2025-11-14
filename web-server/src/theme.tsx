@@ -16,6 +16,18 @@ const theme = createTheme({
       paper: "#1e1e1e",
     },
   },
+  typography: {
+    fontFamily: [
+      "Inter",
+      "-apple-system",
+      "BlinkMacSystemFont",
+      '"Segoe UI"',
+      "Roboto",
+      '"Helvetica Neue"',
+      "Arial",
+      "sans-serif",
+    ].join(","),
+  },
 });
 
 export function AppTheme({ children }: { children: React.ReactNode }) {
