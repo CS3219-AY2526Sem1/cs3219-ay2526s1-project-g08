@@ -108,10 +108,9 @@ sessionSchema.statics.findActiveByUser = function(userId) {
   });
 };
 
-sessionSchema.statics.findActiveById = function(sessionId) {
+sessionSchema.statics.findById = function(sessionId) {
   return this.findOne({
     sessionId,
-    status: 'active'
   });
 };
 

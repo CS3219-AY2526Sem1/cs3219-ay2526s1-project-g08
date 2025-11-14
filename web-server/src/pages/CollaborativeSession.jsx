@@ -2,9 +2,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import CollaborativeEditor from "../components/CollaborativeEditor";
+import CollaborativeViewer from "../components/CollaborativeViewer";
 import config from "../config/environment";
 
-function CollaborativeSession() {
+function CollaborativeSession({ viewMode = "editor" }) {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const { getToken, isLoggedIn, isLoading } = useAuth();
@@ -36,7 +37,7 @@ function CollaborativeSession() {
           return;
         }
 
-        // Store the token in state for use with CollaborativeEditor
+        // Store the token in state for use with the editor/viewer
         setAuthToken(token);
 
         const response = await fetch(
@@ -70,7 +71,7 @@ function CollaborativeSession() {
       setError("Invalid session ID");
       setLoading(false);
     }
-  }, [sessionId, isLoggedIn, isLoading, navigate]);
+  }, [sessionId, isLoggedIn, isLoading, navigate, getToken]);
 
   if (loading) {
     return (
@@ -103,7 +104,14 @@ function CollaborativeSession() {
     );
   }
 
-  return (
+  return viewMode === "viewer" ? (
+    <CollaborativeViewer
+      sessionId={sessionId}
+      authToken={authToken}
+      questionId={questionId}
+      language={language}
+    />
+  ) : (
     <CollaborativeEditor
       sessionId={sessionId}
       authToken={authToken}
