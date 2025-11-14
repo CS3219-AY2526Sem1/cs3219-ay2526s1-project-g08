@@ -174,7 +174,7 @@ jobs:
           - question-service
           - collaboration-service
           - matching-service
-          - web-server
+          # web-server excluded - deployed to S3 + CloudFront
       fail-fast: false
 
     steps:
