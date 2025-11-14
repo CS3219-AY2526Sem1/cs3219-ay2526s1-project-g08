@@ -1,4 +1,5 @@
 import { User, WebSocketMessage } from "../types";
+import config from "../config/environment";
 
 let ws: WebSocket | null = null;
 
@@ -6,7 +7,7 @@ export const connectWebSocket = (
   onMessage: (msg: WebSocketMessage) => void
 ) => {
   return new Promise<void>((resolve, reject) => {
-    ws = new WebSocket("ws://localhost:3001");
+    ws = new WebSocket(config.ws.matchingService);
 
     // Store globally for logout cleanup
     window.matchmakingWS = ws;

@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
-import { apiFetch } from "../utils/api";
+import { useState, useEffect, useCallback } from "react";
 import {
   startTokenRefreshTimer,
   stopTokenRefreshTimer,
 } from "../utils/tokenRefresh";
+import config from "../config/environment";
 
 interface UserProfile {
   userId: string;
@@ -29,7 +29,9 @@ export function useAuth() {
 
         // Fetch profile to get role information and verify session
         try {
-          const response = await apiFetch("/user/profile");
+          const response = await fetch(config.auth.profile, {
+            credentials: "include",
+          });
 
           if (response.ok) {
             const userData = await response.json();
@@ -43,7 +45,7 @@ export function useAuth() {
 
             // Fetch token for use with other services
             try {
-              const tokenResponse = await fetch("http://localhost:3002/user/token", {
+              const tokenResponse = await fetch(config.auth.token, {
                 credentials: "include",
               });
               if (tokenResponse.ok) {
@@ -92,13 +94,13 @@ export function useAuth() {
   };
 
   // Function to get token on demand (useful for API calls)
-  const getToken = async (): Promise<string | null> => {
+  const getToken = useCallback(async (): Promise<string | null> => {
     if (token) {
       return token;
     }
 
     try {
-      const response = await fetch("http://localhost:3002/user/token", {
+      const response = await fetch(config.auth.token, {
         credentials: "include",
       });
       if (response.ok) {
@@ -109,13 +111,23 @@ export function useAuth() {
     } catch (err) {
       console.error("Error fetching token:", err);
     }
-    
+
     return null;
-  };
+  }, [token]);
 
   // User is logged in if we have user data in localStorage
   const isLoggedIn = !!user;
   const isAdmin = profile?.role === "admin";
 
-  return { user, login, logout, isLoggedIn, isAdmin, profile, isLoading, token, getToken };
+  return {
+    user,
+    login,
+    logout,
+    isLoggedIn,
+    isAdmin,
+    profile,
+    isLoading,
+    token,
+    getToken,
+  };
 }

@@ -54,7 +54,7 @@ router.get("/token", async (req: Request, res: Response) => {
 
     // Verify token is valid before returning it
     const payload = verifyJwt(token);
-    
+
     if (typeof payload === "string" || !payload.userId) {
       return res.status(401).json({ error: "Invalid token format" });
     }
@@ -62,7 +62,7 @@ router.get("/token", async (req: Request, res: Response) => {
     // Return the token for use with other services
     res.json({
       token: token,
-      userId: payload.userId
+      userId: payload.userId,
     });
   } catch (err) {
     console.error("Token fetch error:", err);

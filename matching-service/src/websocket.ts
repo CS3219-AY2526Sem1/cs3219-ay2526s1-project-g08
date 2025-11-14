@@ -1,13 +1,14 @@
 import WebSocket from "ws";
+import http from "http";
 import { joinQueue, leaveQueue } from "./queue";
 import { findMatch } from "./matchmaking";
 import { User, ExtendedWebSocket } from "./types";
 import { redis } from "./redis";
 import { activeConnections } from "./connections";
 
-export function startWebSocketServer(port: number) {
-  const wss = new WebSocket.Server({ port });
-  console.log(`WebSocket server running on ws://localhost:${port}`);
+export function startWebSocketServer(server: http.Server) {
+  const wss = new WebSocket.Server({ server });
+  console.log(`WebSocket server attached to HTTP server`);
 
   wss.on("connection", (ws: ExtendedWebSocket) => {
     console.log("Client connected");
@@ -173,8 +174,11 @@ async function createCollaborationSession(match: any): Promise<string | null> {
       return null;
     }
 
+    const collaborationServiceUrl = process.env.COLLABORATION_SERVICE_URL || 
+      "http://collaboration-service:3004/collaboration";
+    
     const response = await fetch(
-      "http://collaboration-service:3004/api/collaboration/sessions",
+      `${collaborationServiceUrl}/sessions`,
       {
         method: "POST",
         headers: {
@@ -321,8 +325,11 @@ export async function deleteCollaborationSession(
   sessionId: string
 ): Promise<void> {
   try {
+    const collaborationServiceUrl = process.env.COLLABORATION_SERVICE_URL || 
+      "http://collaboration-service:3004/collaboration";
+    
     const response = await fetch(
-      `http://collaboration-service:3004/api/collaboration/internal/sessions/${sessionId}`,
+      `${collaborationServiceUrl}/internal/sessions/${sessionId}`,
       {
         method: "DELETE",
         headers: {

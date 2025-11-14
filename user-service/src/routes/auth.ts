@@ -16,8 +16,12 @@ const ACCESS_TOKEN_MS = 60 * 60 * 1000; // 1 hour
 const REFRESH_TOKEN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const REFRESH_TOKEN_DAYS = 30;
 
+// Environment-aware URLs
+const OAUTH_REDIRECT_URI = process.env.OAUTH_REDIRECT_URI || "http://localhost:3002/auth/callback";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+
 router.get("/github", (req, res) => {
-  const redirectUri = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&scope=read:user&redirect_uri=http://localhost:3002/auth/callback`;
+  const redirectUri = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&scope=read:user&redirect_uri=${OAUTH_REDIRECT_URI}`;
   res.redirect(redirectUri);
 });
 
@@ -113,7 +117,7 @@ router.get("/callback", async (req, res) => {
     console.log("✓ Cookie set with token");
     console.log(
       "✓ Redirecting to:",
-      `http://localhost:3000/auth/callback?userId=${
+      `${FRONTEND_URL}/auth/callback?userId=${
         githubUser.login
       }&name=${encodeURIComponent(githubUser.name || githubUser.login)}`
     );
@@ -121,7 +125,7 @@ router.get("/callback", async (req, res) => {
     // Redirect to frontend callback with user info as URL params
     // The frontend will handle navigation after receiving the data
     res.redirect(
-      `http://localhost:3000/auth/callback?userId=${
+      `${FRONTEND_URL}/auth/callback?userId=${
         githubUser.login
       }&name=${encodeURIComponent(githubUser.name || githubUser.login)}`
     );

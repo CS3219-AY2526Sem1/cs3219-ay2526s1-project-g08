@@ -6,8 +6,9 @@
  */
 
 import { refreshAccessToken } from "./tokenRefresh";
+import config from '../config/environment';
 
-const API_BASE_URL = "http://localhost:3002";
+const API_BASE_URL = config.api.baseUrl;
 
 /**
  * Enhanced fetch that handles token refresh on 401 errors

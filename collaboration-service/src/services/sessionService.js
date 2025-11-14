@@ -37,7 +37,7 @@ class SessionService {
   // Get session by ID
   async getSession(sessionId) {
     try {
-      return await Session.findActiveById(sessionId);
+      return await Session.findById(sessionId);
     } catch (error) {
       logger.error('Get session error:', error);
       throw error;
@@ -47,7 +47,7 @@ class SessionService {
   // User joins session
   async joinSession(sessionId, userId) {
     try {
-      const session = await Session.findActiveById(sessionId);
+      const session = await Session.findById(sessionId);
       if (!session) {
         throw new Error('Session not found or not active');
       }
@@ -71,7 +71,7 @@ class SessionService {
   // User leaves session
   async leaveSession(sessionId, userId) {
     try {
-      const session = await Session.findActiveById(sessionId);
+      const session = await Session.findById(sessionId);
       if (!session) {
         return null; // Session already doesn't exist
       }
@@ -91,7 +91,7 @@ class SessionService {
   // Terminate session
   async terminateSession(sessionId, reason = 'manual') {
     try {
-      const session = await Session.findActiveById(sessionId);
+      const session = await Session.findById(sessionId);
       if (!session) {
         return false;
       }
@@ -148,6 +148,40 @@ class SessionService {
       return null;
     }
   }
+
+  // Get user's session history
+  async getUserSessionHistory(userId, options = {}) {
+    try {
+      const { 
+        limit = 50, 
+        offset = 0, 
+        status = null // Can filter by 'active', 'completed', 'terminated'
+      } = options;
+
+      const query = {
+        participants: userId
+      };
+
+      // Add status filter if provided
+      if (status) {
+        query.status = status;
+      }
+
+      const sessions = await Session.find(query)
+        .sort({ updatedAt: -1 }) // Most recent first
+        .skip(parseInt(offset))
+        .limit(parseInt(limit))
+        .select('sessionId participants questionId difficulty topics updatedAt')
+        .lean(); // Convert to plain JavaScript objects for better performance
+
+      return sessions;
+
+    } catch (error) {
+      logger.error('Get user session history error:', error);
+      throw error;
+    }
+  }
 }
+
 
 module.exports = new SessionService();

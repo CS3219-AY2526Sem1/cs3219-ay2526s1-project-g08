@@ -20,7 +20,7 @@ import {
   Snackbar, //added for auto-dismissing notification
 } from "@mui/material";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { TbHome, TbUser, TbLogout, TbShieldCheck } from "react-icons/tb";
+import { TbHome, TbUser, TbLogout, TbShieldCheck, TbHistory } from "react-icons/tb";
 import { useAuth } from "../hooks/useAuth";
 import { stopTokenRefreshTimer } from "../utils/tokenRefresh";
 import { useMatchmakingContext } from "../hooks/MatchmakingGlobal";
@@ -61,6 +61,7 @@ export default function Layout() {
   const menuItems = [
     { path: "/home", label: "Home", icon: <TbHome /> },
     { path: "/profile", label: "Profile", icon: <TbUser /> },
+    { path: "/history", label: "Collaboration History", icon: <TbHistory /> },
   ];
 
   const pendingDeadlineRef = useRef<{

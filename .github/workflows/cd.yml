@@ -11,10 +11,9 @@ env:
   ECS_CLUSTER: peerprep-cluster
 
 jobs:
-  # Single job that builds and deploys all services
   deploy-services:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -30,7 +29,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Build and push all services
+      # Build and push user-service
       - name: Build and push user-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -41,6 +40,22 @@ jobs:
           docker push $ECR_REGISTRY/user-service:$IMAGE_TAG
           docker push $ECR_REGISTRY/user-service:latest
 
+      - name: Register user-service task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://.aws/task-definitions/user-service.json \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy user-service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service user-service \
+            --task-definition user-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      # Build and push question-service
       - name: Build and push question-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -51,6 +66,22 @@ jobs:
           docker push $ECR_REGISTRY/question-service:$IMAGE_TAG
           docker push $ECR_REGISTRY/question-service:latest
 
+      - name: Register question-service task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://.aws/task-definitions/question-service.json \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy question-service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service question-service \
+            --task-definition question-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      # Build and push collaboration-service
       - name: Build and push collaboration-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -61,6 +92,22 @@ jobs:
           docker push $ECR_REGISTRY/collaboration-service:$IMAGE_TAG
           docker push $ECR_REGISTRY/collaboration-service:latest
 
+      - name: Register collaboration-service task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://.aws/task-definitions/collaboration-service.json \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy collaboration-service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service collaboration-service \
+            --task-definition collaboration-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      # Build and push matching-service
       - name: Build and push matching-service
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -71,10 +118,66 @@ jobs:
           docker push $ECR_REGISTRY/matching-service:$IMAGE_TAG
           docker push $ECR_REGISTRY/matching-service:latest
 
-      # Force new deployment for all services
-      - name: Force new deployment
+      - name: Register matching-service task definition
         run: |
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service user-service --force-new-deployment
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service question-service --force-new-deployment
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service collaboration-service --force-new-deployment
-          aws ecs update-service --cluster ${{ env.ECS_CLUSTER }} --service matching-service --force-new-deployment
+          aws ecs register-task-definition \
+            --cli-input-json file://.aws/task-definitions/matching-service.json \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy matching-service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service matching-service \
+            --task-definition matching-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      # Build and push web-server
+      - name: Build and push web-server
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/web-server:$IMAGE_TAG ./web-server
+          docker tag $ECR_REGISTRY/web-server:$IMAGE_TAG $ECR_REGISTRY/web-server:latest
+          docker push $ECR_REGISTRY/web-server:$IMAGE_TAG
+          docker push $ECR_REGISTRY/web-server:latest
+
+      - name: Register web-server task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://.aws/task-definitions/web-server.json \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy web-server
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service web-server \
+            --task-definition web-server \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      # Wait for all services to stabilize
+      - name: Wait for services to stabilize
+        run: |
+          echo "⏳ Waiting for all services to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services user-service question-service collaboration-service matching-service web-server \
+            --region ${{ env.AWS_REGION }}
+          echo "✅ All services are stable!"
+
+      - name: Deployment summary
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  ✅ Deployment Complete!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services user-service question-service collaboration-service matching-service web-server \
+            --region ${{ env.AWS_REGION }} \
+            --query 'services[*].[serviceName,desiredCount,runningCount,deployments[0].status]' \
+            --output table

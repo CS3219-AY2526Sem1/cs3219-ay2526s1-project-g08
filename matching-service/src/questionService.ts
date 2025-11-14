@@ -1,7 +1,7 @@
 // Client for communicating with the Question Service
 
 const QUESTION_SERVICE_URL =
-  process.env.QUESTION_SERVICE_URL || "http://question-service:3003";
+  process.env.QUESTION_SERVICE_URL || "http://question-service:3003/questions";
 
 export interface Question {
   _id: string;
@@ -33,7 +33,7 @@ export async function getRandomQuestionId(
       params.append("topics", topics.join(","));
     }
 
-    const url = `${QUESTION_SERVICE_URL}/api/questions/random?${params.toString()}`;
+    const url = `${QUESTION_SERVICE_URL}/random?${params.toString()}`;
     console.log(`Fetching random question ID from: ${url}`);
 
     const response = await fetch(url);
@@ -64,7 +64,7 @@ export async function getQuestionById(
   questionId: string
 ): Promise<Question | null> {
   try {
-    const url = `${QUESTION_SERVICE_URL}/api/questions/${questionId}`;
+    const url = `${QUESTION_SERVICE_URL}/${questionId}`;
     console.log(`Fetching question details from: ${url}`);
 
     const response = await fetch(url);

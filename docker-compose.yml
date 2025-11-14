@@ -1,78 +1,81 @@
 services:
-    redis:
-        image: redis:8-alpine
-        container_name: redis
-        ports:
-            - "6379:6379"
-        command: ["redis-server", "--save", "", "--appendonly", "no"]
-        
-    matching-service:
-        build: ./matching-service
-        container_name: matching-service
-        ports:
-            - "3001:3001"
-        depends_on:
-            - redis
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
 
-    mongo:
-        image: mongo:8
-        container_name: mongo
-        ports:
-            - "27017:27017"
-        environment:
-            MONGO_INITDB_ROOT_USERNAME: root
-            MONGO_INITDB_ROOT_PASSWORD: password
-        volumes:
-            - mongo-data:/data/db
-        
-    mongo-express:
-        image: mongo-express:1.0.2-20-alpine3.19
-        container_name: mongo-express
-        ports:
-            - "8081:8081"
-        environment:
-            ME_CONFIG_MONGODB_ADMINUSERNAME: root
-            ME_CONFIG_MONGODB_ADMINPASSWORD: password
-            ME_CONFIG_MONGODB_SERVER: mongo
-        depends_on:
-            - mongo
+  matching-service:
+    build: ./matching-service
+    container_name: matching-service
+    ports:
+      - "3001:3001"
+    environment:
+      COLLABORATION_SERVICE_URL: http://collaboration-service:3004/collaboration
+      QUESTION_SERVICE_URL: http://question-service:3003/questions
+    depends_on:
+      - redis
 
-    user-service:
-        build: ./user-service
-        env_file:
-            - user-service/.env.local
-        container_name: user-service
-        ports:
-            - "3002:3002"
-        depends_on:
-            - mongo
+  mongo:
+    image: mongo:8
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongo-data:/data/db
 
-    collaboration-service:
-        build: ./collaboration-service
-        container_name: collaboration-service
-        ports:
-            - "3004:3004"
-        depends_on:
-            - mongo
-        environment:
-            MONGO_URI: mongodb://root:password@mongo:27017/collaboration_service?authSource=admin
-            JWT_SECRET: ${JWT_SECRET:-jwtsecret}
-            NODE_ENV: development
-            FRONTEND_URL: http://localhost:3000
-        volumes:
-            - ./collaboration-service:/app
-            - /app/node_modules
+  mongo-express:
+    image: mongo-express:1.0.2-20-alpine3.19
+    container_name: mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+      ME_CONFIG_MONGODB_SERVER: mongo
+    depends_on:
+      - mongo
 
-    question-service:
-        build: ./question-service
-        container_name: question-service
-        ports:
-            - "3003:3003"
-        depends_on:
-            - mongo
-        environment:
-            MONGO_URI: mongodb://root:password@mongo:27017/question_service?authSource=admin
-            MONGO_DB_NAME: question_service
+  user-service:
+    build: ./user-service
+    env_file:
+      - user-service/.env.local
+    container_name: user-service
+    ports:
+      - "3002:3002"
+    depends_on:
+      - mongo
+
+  collaboration-service:
+    build: ./collaboration-service
+    container_name: collaboration-service
+    ports:
+      - "3004:3004"
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URI: mongodb://root:password@mongo:27017/collaboration_service?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-jwtsecret}
+      NODE_ENV: development
+      FRONTEND_URL: http://localhost:3000
+    volumes:
+      - ./collaboration-service:/app
+      - /app/node_modules
+
+  question-service:
+    build: ./question-service
+    container_name: question-service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URI: mongodb://root:password@mongo:27017/question_service?authSource=admin
+      MONGO_DB_NAME: question_service
 
 volumes:
-    mongo-data:
+  mongo-data:
