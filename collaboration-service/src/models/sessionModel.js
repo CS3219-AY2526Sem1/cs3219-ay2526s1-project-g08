@@ -79,14 +79,10 @@ sessionSchema.methods.addUser = function(userId) {
 sessionSchema.methods.removeUser = function(userId) {
   this.connectedUsers = this.connectedUsers.filter(u => u.userId !== userId);
   
-  // 🚨 CRITICAL FIX: Terminate session when ANY user leaves (for matchmaking purposes)
-  // This allows users to rejoin the queue immediately
-  // The Yjs document can still exist for the remaining user if needed
-  if (this.connectedUsers.length < this.participants.length) {
+  // Auto-terminate if no users left
+  if (this.connectedUsers.length === 0) {
     this.status = 'terminated';
-    this.terminationReason = this.connectedUsers.length === 0 
-      ? 'all_users_disconnected' 
-      : 'partner_left';
+    this.terminationReason = 'all_users_disconnected';
   }
   return this;
 };
