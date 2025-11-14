@@ -147,12 +147,6 @@ export default function Layout() {
         "The other user didn't respond. Rejoining the queue…"
       );
       setShowDeclineNotification(true);
-
-      // Auto-hide after 3 seconds
-      const timer = setTimeout(() => {
-        setShowDeclineNotification(false);
-      }, 3000);
-      return () => clearTimeout(timer);
     } else if (error?.includes("declined by peer")) {
       console.log("→ Case: Peer declined");
       // Peer declined - show notification
@@ -160,12 +154,6 @@ export default function Layout() {
         "Your peer declined the match. Rejoining the queue…"
       );
       setShowDeclineNotification(true);
-
-      // Auto-hide after 3 seconds
-      const timer = setTimeout(() => {
-        setShowDeclineNotification(false);
-      }, 3000);
-      return () => clearTimeout(timer);
     }
   }, [error]);
 
@@ -441,10 +429,9 @@ export default function Layout() {
           </Dialog>
         )}
 
-      {/* Auto-dismissing notification for peer decline or timeout */}
+      {/* Notification for peer decline or timeout */}
       <Snackbar
         open={showDeclineNotification}
-        autoHideDuration={3000}
         onClose={() => setShowDeclineNotification(false)}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >

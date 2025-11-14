@@ -7,7 +7,6 @@ import {
   Select,
   MenuItem,
   Button,
-  TextField,
   Alert,
   Stack,
   Chip,
@@ -22,7 +21,6 @@ import { useMatchmakingContext } from "../hooks/MatchmakingGlobal";
 export default function Home() {
   const { user } = useAuth();
 
-  const [localUserId, setLocalUserId] = useState(user?.userId || "user123");
   const [localDifficulty, setLocalDifficulty] = useState("easy");
   const [localLanguage, setLocalLanguage] = useState("python");
   const [localSelectedTopics, setLocalSelectedTopics] = useState<string[]>([]);
@@ -30,13 +28,6 @@ export default function Home() {
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [loadingTopics, setLoadingTopics] = useState(true);
   const [lastTopicRefresh, setLastTopicRefresh] = useState<Date | null>(null);
-
-  // Update userId when user data becomes available
-  useEffect(() => {
-    if (user?.userId) {
-      setLocalUserId(user.userId);
-    }
-  }, [user?.userId]);
 
   const {
     match,
@@ -50,14 +41,16 @@ export default function Home() {
 
   // useEffect to send arguments to persistent context
   useEffect(() => {
+    if (!user?.userId) return;
+
     setMatchParams({
-      userId: localUserId,
+      userId: user.userId,
       difficulty: localDifficulty,
       language: localLanguage,
       topics: localSelectedTopics,
     });
   }, [
-    localUserId,
+    user?.userId,
     localDifficulty,
     localLanguage,
     localSelectedTopics,
@@ -132,14 +125,6 @@ export default function Home() {
       <Typography variant="h4" gutterBottom>
         Welcome to PeerPrep
       </Typography>
-
-      <TextField
-        label="User ID"
-        value={localUserId}
-        onChange={(e) => setLocalUserId(e.target.value)}
-        fullWidth
-        sx={{ mb: 3 }}
-      />
 
       <FormControl fullWidth sx={{ mb: 3 }}>
         <InputLabel id="difficulty-label">Difficulty</InputLabel>
