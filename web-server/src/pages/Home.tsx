@@ -132,6 +132,7 @@ export default function Home() {
           labelId="difficulty-label"
           value={localDifficulty}
           onChange={(e) => setLocalDifficulty(e.target.value)}
+          disabled={isFinding || !!match}
         >
           <MenuItem value="easy">Easy</MenuItem>
           <MenuItem value="medium">Medium</MenuItem>
@@ -145,6 +146,7 @@ export default function Home() {
           labelId="language-label"
           value={localLanguage}
           onChange={(e) => setLocalLanguage(e.target.value)}
+          disabled={isFinding || !!match}
         >
           <MenuItem value="python">Python</MenuItem>
           <MenuItem value="java">Java</MenuItem>
@@ -179,7 +181,12 @@ export default function Home() {
               ))}
             </Box>
           )}
-          disabled={loadingTopics || availableTopics.length === 0}
+          disabled={
+            isFinding ||
+            !!match ||
+            loadingTopics ||
+            availableTopics.length === 0
+          }
         >
           {loadingTopics ? (
             <MenuItem disabled>Loading topics...</MenuItem>
