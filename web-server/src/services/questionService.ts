@@ -1,4 +1,6 @@
-const QUESTION_SERVICE_URL = "http://localhost:3003/api/questions";
+import config from "../config/environment";
+
+const QUESTION_SERVICE_URL = config.api.questionService;
 
 export interface Question {
   _id: string;

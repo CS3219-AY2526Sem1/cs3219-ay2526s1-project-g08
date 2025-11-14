@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import YjsCollaboration from '../services/yjsCollaboration';
 import './CollaborativeEditor.css';
 import { useNavigate } from 'react-router-dom';
+import config from '../config/environment';
 
 function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
   const [connectedUsers, setConnectedUsers] = useState([]);
@@ -17,7 +18,7 @@ function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
     const fetchQuestionData = async () => {
       try {
         // Get a random question from the question service
-        const response = await fetch(`http://localhost:3003/api/questions/${questionId}`);
+        const response = await fetch(`${config.api.questionService}/${questionId}`);
         if (response.ok) {
           const questionData = await response.json();
           setQuestionData({

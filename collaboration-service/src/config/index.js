@@ -6,15 +6,10 @@ module.exports = {
     environment: process.env.NODE_ENV || 'development'
   },
   database: {
-    uri: process.env.MONGO_URI || 'mongodb://localhost:27017/peerprep_collaboration',
+    uri: process.env.MONGO_URI || 'mongodb://root:password@mongo:27017/collaboration_service?authSource=admin',
   },
   jwt: {
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRY || '24h'
-  },
-  services: {
-    userService: process.env.USER_SERVICE_URL,
-    questionService: process.env.QUESTION_SERVICE_URL,
-    matchingService: process.env.MATCHING_SERVICE_URL
   }
 };

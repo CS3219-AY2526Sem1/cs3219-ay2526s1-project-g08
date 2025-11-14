@@ -118,6 +118,8 @@ if [ "$SKIP_ENV_UPDATE" = false ]; then
         --arg MONGO_URI "$MONGO_URI" \
         --arg JWT_SECRET "$JWT_SECRET" \
         --arg REFRESH_TOKEN_SECRET "$REFRESH_TOKEN_SECRET" \
+        --arg OAUTH_REDIRECT_URI "${OAUTH_REDIRECT_URI:-http://peerprep-alb-1487410036.ap-southeast-1.elb.amazonaws.com/user/auth/callback}" \
+        --arg FRONTEND_URL "${FRONTEND_URL:-http://peerprep-alb-1487410036.ap-southeast-1.elb.amazonaws.com}" \
         --arg IMAGE "$ECR_URI:$IMAGE_TAG" '
         .containerDefinitions[0].image = $IMAGE |
         .containerDefinitions[0].environment = [
@@ -126,8 +128,12 @@ if [ "$SKIP_ENV_UPDATE" = false ]; then
             {"name": "MONGO_URI", "value": $MONGO_URI},
             {"name": "JWT_SECRET", "value": $JWT_SECRET},
             {"name": "REFRESH_TOKEN_SECRET", "value": $REFRESH_TOKEN_SECRET},
+            {"name": "OAUTH_REDIRECT_URI", "value": $OAUTH_REDIRECT_URI},
+            {"name": "FRONTEND_URL", "value": $FRONTEND_URL},
             {"name": "PORT", "value": "3002"}
         ] |
+        # Remove any secrets to avoid conflicts (we use environment variables instead)
+        .containerDefinitions[0].secrets = [] |
         del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)
     ')
     

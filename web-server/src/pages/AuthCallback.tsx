@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiFetch } from "../utils/api";
 import { startTokenRefreshTimer } from "../utils/tokenRefresh";
+import config from "../config/environment";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -31,7 +31,9 @@ export default function AuthCallback() {
           // No params - try to fetch user profile directly using the cookie
           console.log("No URL params, fetching profile...");
 
-          const response = await apiFetch("/user/profile");
+          const response = await fetch(config.auth.profile, {
+            credentials: "include",
+          });
 
           if (response.ok) {
             const userData = await response.json();

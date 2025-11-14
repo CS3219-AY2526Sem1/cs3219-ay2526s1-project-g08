@@ -12,7 +12,9 @@ describe('Session API', () => {
 
   beforeAll(async () => {
     // Connect to test database
-    await database.connect('mongodb://127.0.0.1:27017/peerprep_test');
+    // Connect to test database with authentication
+    const mongoUri = 'mongodb://root:password@127.0.0.1:27017/peerprep_test?authSource=admin';
+    await database.connect(mongoUri);
     
     // Create test auth token
     authToken = jwt.sign(
@@ -31,7 +33,7 @@ describe('Session API', () => {
     await database.disconnect();
   });
 
-  describe('POST /api/collaboration/sessions', () => {
+  describe('POST /collaboration/sessions', () => {
     it('should create a new session successfully', async () => {
       const sessionData = {
         participants: [userId1, userId2],
@@ -42,7 +44,7 @@ describe('Session API', () => {
       };
 
       const response = await request(app)
-        .post('/api/collaboration/sessions')
+        .post('/collaboration/sessions')
         .set('Authorization', `Bearer ${authToken}`)
         .send(sessionData)
         .expect(201);
@@ -66,7 +68,7 @@ describe('Session API', () => {
       };
 
       const response = await request(app)
-        .post('/api/collaboration/sessions')
+        .post('/collaboration/sessions')
         .set('Authorization', `Bearer ${authToken}`)
         .send(invalidData)
         .expect(400);
@@ -84,7 +86,7 @@ describe('Session API', () => {
       };
 
       const response = await request(app)
-        .post('/api/collaboration/sessions')
+        .post('/collaboration/sessions')
         .set('Authorization', `Bearer ${authToken}`)
         .send(invalidData)
         .expect(400);
@@ -102,7 +104,7 @@ describe('Session API', () => {
       };
 
       const response = await request(app)
-        .post('/api/collaboration/sessions')
+        .post('/collaboration/sessions')
         .set('Authorization', `Bearer ${authToken}`)
         .send(invalidData)
         .expect(400);
@@ -110,7 +112,7 @@ describe('Session API', () => {
       expect(response.body.success).toBe(false);
     });
 
-    it('should prevent creating session if user already has active session', async () => {
+    it('should terminate existing session and create a new one if user already has active session', async () => {
       // Create existing session
       const existingSession = new Session({
         sessionId: 'existing-session',
@@ -131,17 +133,28 @@ describe('Session API', () => {
       };
 
       const response = await request(app)
-        .post('/api/collaboration/sessions')
+        .post('/collaboration/sessions')
         .set('Authorization', `Bearer ${authToken}`)
         .send(sessionData)
-        .expect(500);
+        .expect(201);
 
-      expect(response.body.success).toBe(false);
-      expect(response.body.message).toContain('already has an active session');
+      expect(response.body.success).toBe(true);
+      expect(response.body.data.sessionId).toBeDefined();
+      
+      // Verify old session was terminated
+      const oldSession = await Session.findOne({ sessionId: 'existing-session' });
+      expect(oldSession.status).toBe('terminated');
+      
+      // Verify new session was created
+      const newSession = await Session.findOne({ sessionId: response.body.data.sessionId });
+      expect(newSession).toBeTruthy();
+      expect(newSession.status).toBe('active');
+      expect(newSession.participants).toContain(userId1);
+      expect(newSession.participants).toContain(userId2);
     });
   });
 
-  describe('GET /api/collaboration/sessions/:sessionId', () => {
+  describe('GET /collaboration/sessions/:sessionId', () => {
     it('should retrieve session details', async () => {
       // Create a session first
       const session = new Session({
@@ -155,7 +168,7 @@ describe('Session API', () => {
       await session.save();
 
       const response = await request(app)
-        .get(`/api/collaboration/sessions/test-session`)
+        .get(`/collaboration/sessions/test-session`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 
@@ -169,7 +182,7 @@ describe('Session API', () => {
 
     it('should return 404 for non-existent session', async () => {
       const response = await request(app)
-        .get('/api/collaboration/sessions/non-existent')
+        .get('/collaboration/sessions/non-existent')
         .set('Authorization', `Bearer ${authToken}`)
         .expect(404);
 
@@ -178,7 +191,7 @@ describe('Session API', () => {
     });
   });
 
-  describe('DELETE /api/collaboration/sessions/:sessionId', () => {
+  describe('DELETE /collaboration/sessions/:sessionId', () => {
     it('should terminate session successfully', async () => {
       // Create a session first
       const session = new Session({
@@ -192,7 +205,7 @@ describe('Session API', () => {
       await session.save();
 
       const response = await request(app)
-        .delete(`/api/collaboration/sessions/test-session`)
+        .delete(`/collaboration/sessions/test-session`)
         .set('Authorization', `Bearer ${authToken}`)
         .expect(200);
 

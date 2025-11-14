@@ -5,7 +5,9 @@
  * Access tokens expire after 1 hour, so we refresh them every 50 minutes.
  */
 
-let refreshTimer: number | null = null;
+import config from '../config/environment';
+
+let refreshTimer: ReturnType<typeof setInterval> | null = null;
 let isRefreshing = false;
 
 /**
@@ -24,7 +26,7 @@ export async function refreshAccessToken(): Promise<boolean> {
   try {
     console.log("🔄 Refreshing access token...");
 
-    const response = await fetch("http://localhost:3002/auth/refresh", {
+    const response = await fetch(config.auth.refresh, {
       method: "POST",
       credentials: "include", // Important: sends refresh token cookie
     });
