@@ -454,7 +454,7 @@ export default function Home() {
 
       {isFinding && !match && (
         <Typography variant="body2" color="text.secondary">
-          Searching for peer... progressed {timeProgress}s
+          Searching for peer...
         </Typography>
       )}
 
