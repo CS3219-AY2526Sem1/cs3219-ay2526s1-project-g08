@@ -41,7 +41,7 @@ function CollaborativeSession({ viewMode = "editor" }) {
         setAuthToken(token);
 
         const response = await fetch(
-          `${config.api.collaborationService}/sessions/${sessionId}`,
+          `${config.api.collaborationService}sessions/${sessionId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

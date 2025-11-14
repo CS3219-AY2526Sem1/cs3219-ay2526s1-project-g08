@@ -107,17 +107,21 @@ class SocketServer {
         });
         logger.debug(`Sent initial Yjs sync to user ${socket.userId} in session ${socket.sessionId}`);
 
+        // 🚨 FIX: Refresh session to get current connectedUsers after all setup
+        const currentSession = await sessionService.getSession(socket.sessionId);
+        const connectedUsers = currentSession.connectedUsers.map((u) => u.userId);
+
         // Notify other participants in the room
         socket.to(socket.sessionId).emit("user_joined", {
           userId: socket.userId,
-          connectedUsers: session.connectedUsers.map((u) => u.userId),
+          connectedUsers: connectedUsers,
           timestamp: Date.now(),
         });
 
         // Send current session state to newly connected or reconnected user
         socket.emit("session_state", {
           sessionId: socket.sessionId,
-          connectedUsers: session.connectedUsers.map((u) => u.userId),
+          connectedUsers: connectedUsers,
         });
 
         this.setupUserEventHandlers(socket);
