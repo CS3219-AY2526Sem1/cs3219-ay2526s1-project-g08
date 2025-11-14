@@ -51,7 +51,7 @@ export default function HistoryPage() {
         }
 
         const res = await fetch(
-          `${config.api.collaborationService}/user/history`,
+          `${config.api.collaborationService}user/history`,
           {
             credentials: "include",
             headers: {
@@ -77,7 +77,7 @@ export default function HistoryPage() {
 
           try {
             const questionRes = await fetch(
-              `${config.api.questionService}/${item.questionId}`
+              `${config.api.questionService}${item.questionId}`
             );
             if (questionRes.ok) {
               const questionData =
