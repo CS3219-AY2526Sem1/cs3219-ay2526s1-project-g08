@@ -18,7 +18,7 @@ function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
     const fetchQuestionData = async () => {
       try {
         // Get a random question from the question service
-        const response = await fetch(`${config.api.questionService}/${questionId}`);
+        const response = await fetch(`${config.api.questionService}${questionId}`);
         if (response.ok) {
           const questionData = await response.json();
           setQuestionData({
