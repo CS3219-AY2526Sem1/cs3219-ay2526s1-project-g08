@@ -51,8 +51,12 @@ function CollaborativeSession({ viewMode = "editor" }) {
 
         if (response.ok) {
           const data = await response.json();
-          setQuestionId(data.data.questionId);
-          setLanguage(data.data.language);
+          if (data.data.status === "terminated" && viewMode === "editor") {
+            setError("This session has been terminated and cannot be edited.");
+          } else {
+            setQuestionId(data.data.questionId);
+            setLanguage(data.data.language);
+          }
         } else if (response.status === 404) {
           setError("Session not found");
         } else {
