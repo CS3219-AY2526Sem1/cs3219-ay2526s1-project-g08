@@ -30,6 +30,7 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { stopTokenRefreshTimer } from "../utils/tokenRefresh";
 import { useMatchmakingContext } from "../hooks/MatchmakingGlobal";
+import config from "../config/environment";
 
 const SIDEBAR_WIDTH = 240;
 
@@ -107,7 +108,7 @@ export default function Layout() {
 
     // Call backend logout to revoke refresh token
     try {
-      await fetch("http://localhost:3002/auth/logout", {
+      await fetch(`${config.auth.logout}`, {
         method: "POST",
         credentials: "include",
       });
