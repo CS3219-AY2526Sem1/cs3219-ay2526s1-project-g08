@@ -18,6 +18,7 @@ import {
   DialogContent,
   DialogActions,
   Stack,
+  CircularProgress,
 } from "@mui/material";
 import { TbPlus, TbTrash, TbX, TbEdit, TbEye } from "react-icons/tb";
 import { useNavigate } from "react-router-dom";
@@ -229,391 +230,611 @@ export default function AdminDashboard() {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box
-        sx={{
-          mb: 3,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <Box>
-          <Typography variant="h4">Admin Dashboard</Typography>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        p: 3,
+      }}
+    >
+      <Box sx={{ maxWidth: "1400px", mx: "auto" }}>
+        {/* Page Header */}
+        <Box sx={{ mb: 3, textAlign: "center" }}>
+          <Typography
+            variant="h3"
+            gutterBottom
+            sx={{
+              fontWeight: 600,
+              mb: 1,
+              fontSize: { xs: "2rem", md: "2.25rem" }, // 36-40px
+            }}
+          >
+            Admin Dashboard
+          </Typography>
+          <Typography
+            variant="body1"
+            color="text.secondary"
+            sx={{
+              lineHeight: 1.6,
+              fontSize: { xs: "1.125rem", md: "1.25rem" }, // 18-20px
+              mb: 0.5,
+            }}
+          >
+            Manage interview questions
+          </Typography>
           {profile && (
-            <Typography variant="caption" color="text.secondary">
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }}
+            >
               Logged in as: {profile.name} ({profile.role})
             </Typography>
           )}
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<TbPlus />}
-          onClick={handleOpenAddDialog}
-        >
-          Add Question
-        </Button>
-      </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {success && (
-        <Alert
-          severity="success"
-          sx={{ mb: 2 }}
-          onClose={() => setSuccess(null)}
-        >
-          {success}
-        </Alert>
-      )}
-
-      {loading ? (
-        <Typography>Loading questions...</Typography>
-      ) : (
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
-          {questions.map((question) => (
-            <Box
-              key={question._id}
-              sx={{
-                width: {
-                  xs: "100%",
-                  md: "calc(50% - 8px)",
-                  lg: "calc(33.333% - 11px)",
-                },
-              }}
-            >
-              <Card
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  position: "relative",
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="h6" gutterBottom>
-                      {question.title}
-                    </Typography>
-                    <Chip
-                      label={question.difficulty.toUpperCase()}
-                      color={getDifficultyColor(question.difficulty)}
-                      size="small"
-                      sx={{ mb: 1 }}
-                    />
-                  </Box>
-
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{
-                      mb: 2,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      display: "-webkit-box",
-                      WebkitLineClamp: 3,
-                      WebkitBoxOrient: "vertical",
-                    }}
-                  >
-                    {question.description}
-                  </Typography>
-
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                    {question.topics.map((topic, index) => (
-                      <Chip
-                        key={index}
-                        label={topic}
-                        size="small"
-                        variant="outlined"
-                      />
-                    ))}
-                  </Box>
-                </CardContent>
-
-                <CardActions sx={{ pt: 0, pb: 2, px: 2 }}>
-                  <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<TbEye />}
-                      onClick={() => handleViewQuestion(question)}
-                    >
-                      View
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<TbEdit />}
-                      onClick={() => handleEditQuestion(question)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      variant="outlined"
-                      startIcon={<TbTrash />}
-                      onClick={() =>
-                        handleDeleteQuestion(question._id, question.title)
-                      }
-                    >
-                      Delete
-                    </Button>
-                  </Box>
-                </CardActions>
-              </Card>
-            </Box>
-          ))}
-        </Box>
-      )}
-
-      {/* Add/Edit Question Dialog */}
-      <Dialog
-        open={openDialog}
-        onClose={() => {
-          setOpenDialog(false);
-          resetForm();
-        }}
-        maxWidth="md"
-        fullWidth
-        sx={{ zIndex: 1300 }} // Ensure dialog is above other elements
-      >
-        <DialogTitle>
-          {isEditMode ? "Edit Question" : "Add New Question"}
-        </DialogTitle>
-        <DialogContent>
-          {error && (
-            <Alert
-              severity="error"
-              sx={{ mb: 2, zIndex: 1400 }}
-              onClose={() => setError(null)}
-            >
-              {error}
-            </Alert>
-          )}
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <TextField
-              label="Question Title"
-              fullWidth
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              required
-            />
-
-            <TextField
-              label="Description"
-              fullWidth
-              multiline
-              rows={4}
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              required
-            />
-
-            <FormControl fullWidth>
-              <InputLabel>Difficulty</InputLabel>
-              <Select
-                value={formData.difficulty}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    difficulty: e.target.value as "easy" | "medium" | "hard",
-                  })
-                }
-                label="Difficulty"
-              >
-                <MenuItem value="easy">Easy</MenuItem>
-                <MenuItem value="medium">Medium</MenuItem>
-                <MenuItem value="hard">Hard</MenuItem>
-              </Select>
-            </FormControl>
-
-            <Box>
-              <Box sx={{ display: "flex", gap: 1, mb: 1 }}>
-                <TextField
-                  label="Add Topic *"
-                  size="small"
-                  value={topicInput}
-                  onChange={(e) => setTopicInput(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      handleAddTopic();
-                    }
-                  }}
-                  sx={{ flex: 1 }}
-                />
-                <Button variant="outlined" onClick={handleAddTopic}>
-                  Add
-                </Button>
-              </Box>
-
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                {formData.topics.map((topic, index) => (
-                  <Chip
-                    key={index}
-                    label={topic}
-                    onDelete={() => handleRemoveTopic(topic)}
-                    deleteIcon={<TbX />}
-                  />
-                ))}
-              </Box>
-            </Box>
-          </Stack>
-        </DialogContent>
-
-        <DialogActions>
+        {/* Add Button */}
+        <Box sx={{ mb: 3, display: "flex", justifyContent: "center" }}>
           <Button
-            onClick={() => {
-              setOpenDialog(false);
-              resetForm();
+            variant="contained"
+            startIcon={<TbPlus />}
+            onClick={handleOpenAddDialog}
+            sx={{
+              fontSize: { xs: "1rem", md: "1.0625rem" }, // 16-17px
+              textTransform: "uppercase",
+              fontWeight: 600,
+              px: 3,
+              py: 1.5,
             }}
           >
-            Cancel
+            Add Question
           </Button>
-          <Button variant="contained" onClick={handleCreateQuestion}>
-            {isEditMode ? "Update Question" : "Create Question"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+        </Box>
 
-      {/* View Question Details Dialog */}
-      <Dialog
-        open={openViewDialog}
-        onClose={() => {
-          setOpenViewDialog(false);
-          setSelectedQuestion(null);
-        }}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Question Details</DialogTitle>
-        <DialogContent>
-          {selectedQuestion && (
-            <Stack spacing={3} sx={{ mt: 1 }}>
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  Title
-                </Typography>
-                <Typography variant="h6">{selectedQuestion.title}</Typography>
-              </Box>
+        {error && (
+          <Alert
+            severity="error"
+            sx={{
+              mb: 2,
+              "& .MuiAlert-message": {
+                fontSize: { xs: "0.875rem", md: "0.9375rem" },
+              },
+            }}
+            onClose={() => setError(null)}
+          >
+            {error}
+          </Alert>
+        )}
 
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  Difficulty
-                </Typography>
-                <Chip
-                  label={selectedQuestion.difficulty.toUpperCase()}
-                  color={getDifficultyColor(selectedQuestion.difficulty)}
-                  size="small"
-                />
-              </Box>
+        {success && (
+          <Alert
+            severity="success"
+            sx={{
+              mb: 2,
+              "& .MuiAlert-message": {
+                fontSize: { xs: "0.875rem", md: "0.9375rem" },
+              },
+            }}
+            onClose={() => setSuccess(null)}
+          >
+            {success}
+          </Alert>
+        )}
 
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  Description
-                </Typography>
-                <Typography
-                  variant="body1"
+        {loading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+            {questions.map((question) => (
+              <Box
+                key={question._id}
+                sx={{
+                  width: {
+                    xs: "100%",
+                    md: "calc(50% - 8px)",
+                    lg: "calc(33.333% - 11px)",
+                  },
+                }}
+              >
+                <Card
                   sx={{
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                    position: "relative",
+                    bgcolor: "#181818",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: 1.5,
+                    backgroundImage: "none",
                   }}
                 >
-                  {selectedQuestion.description}
-                </Typography>
+                  <CardContent sx={{ flexGrow: 1, pb: 1 }}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography
+                        variant="h6"
+                        gutterBottom
+                        sx={{
+                          fontSize: { xs: "1.125rem", md: "1.25rem" }, // 18-20px
+                          fontWeight: 600,
+                        }}
+                      >
+                        {question.title}
+                      </Typography>
+                      <Chip
+                        label={question.difficulty.toUpperCase()}
+                        color={getDifficultyColor(question.difficulty)}
+                        size="small"
+                        sx={{
+                          mb: 1,
+                          fontSize: { xs: "0.75rem", md: "0.8125rem" },
+                          fontWeight: 600,
+                        }}
+                      />
+                    </Box>
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        mb: 2,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                      }}
+                    >
+                      {question.description}
+                    </Typography>
+
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {question.topics.map((topic, index) => (
+                        <Chip
+                          key={index}
+                          label={topic}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontSize: { xs: "0.75rem", md: "0.8125rem" } }}
+                        />
+                      ))}
+                    </Box>
+                  </CardContent>
+
+                  <CardActions sx={{ pt: 0, pb: 2, px: 2 }}>
+                    <Box sx={{ display: "flex", gap: 1, width: "100%" }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<TbEye />}
+                        onClick={() => handleViewQuestion(question)}
+                        sx={{
+                          fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        View
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<TbEdit />}
+                        onClick={() => handleEditQuestion(question)}
+                        sx={{
+                          fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                        startIcon={<TbTrash />}
+                        onClick={() =>
+                          handleDeleteQuestion(question._id, question.title)
+                        }
+                        sx={{
+                          fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  </CardActions>
+                </Card>
               </Box>
+            ))}
+          </Box>
+        )}
+
+        {/* Add/Edit Question Dialog */}
+        <Dialog
+          open={openDialog}
+          onClose={() => {
+            setOpenDialog(false);
+            resetForm();
+          }}
+          maxWidth="md"
+          fullWidth
+          sx={{ zIndex: 1300 }}
+          PaperProps={{
+            sx: {
+              bgcolor: "#181818",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: 1.5,
+              backgroundImage: "none",
+            },
+          }}
+        >
+          <DialogTitle
+            sx={{
+              fontSize: { xs: "1.25rem", md: "1.375rem" }, // 20-22px
+              fontWeight: 600,
+            }}
+          >
+            {isEditMode ? "Edit Question" : "Add New Question"}
+          </DialogTitle>
+          <DialogContent>
+            {error && (
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 2,
+                  zIndex: 1400,
+                  "& .MuiAlert-message": {
+                    fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                  },
+                }}
+                onClose={() => setError(null)}
+              >
+                {error}
+              </Alert>
+            )}
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              <TextField
+                label="Question Title"
+                fullWidth
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                required
+                sx={{
+                  "& .MuiInputLabel-root": {
+                    fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                  },
+                  "& .MuiInputBase-input": {
+                    fontSize: { xs: "1rem", md: "1.0625rem" },
+                  },
+                }}
+              />
+
+              <TextField
+                label="Description"
+                fullWidth
+                multiline
+                rows={4}
+                value={formData.description}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                required
+                sx={{
+                  "& .MuiInputLabel-root": {
+                    fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                  },
+                  "& .MuiInputBase-input": {
+                    fontSize: { xs: "1rem", md: "1.0625rem" },
+                  },
+                }}
+              />
+
+              <FormControl fullWidth>
+                <InputLabel
+                  sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }}
+                >
+                  Difficulty
+                </InputLabel>
+                <Select
+                  value={formData.difficulty}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      difficulty: e.target.value as "easy" | "medium" | "hard",
+                    })
+                  }
+                  label="Difficulty"
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      fontSize: { xs: "1rem", md: "1.0625rem" },
+                    },
+                  }}
+                >
+                  <MenuItem
+                    value="easy"
+                    sx={{ fontSize: { xs: "1rem", md: "1.0625rem" } }}
+                  >
+                    Easy
+                  </MenuItem>
+                  <MenuItem
+                    value="medium"
+                    sx={{ fontSize: { xs: "1rem", md: "1.0625rem" } }}
+                  >
+                    Medium
+                  </MenuItem>
+                  <MenuItem
+                    value="hard"
+                    sx={{ fontSize: { xs: "1rem", md: "1.0625rem" } }}
+                  >
+                    Hard
+                  </MenuItem>
+                </Select>
+              </FormControl>
 
               <Box>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  Topics
-                </Typography>
+                <Box sx={{ display: "flex", gap: 1, mb: 1 }}>
+                  <TextField
+                    label="Add Topic *"
+                    size="small"
+                    value={topicInput}
+                    onChange={(e) => setTopicInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddTopic();
+                      }
+                    }}
+                    sx={{
+                      flex: 1,
+                      "& .MuiInputLabel-root": {
+                        fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                      },
+                      "& .MuiInputBase-input": {
+                        fontSize: { xs: "1rem", md: "1.0625rem" },
+                      },
+                    }}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={handleAddTopic}
+                    sx={{
+                      fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    Add
+                  </Button>
+                </Box>
+
                 <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                  {selectedQuestion.topics.map((topic, index) => (
-                    <Chip key={index} label={topic} variant="outlined" />
+                  {formData.topics.map((topic, index) => (
+                    <Chip
+                      key={index}
+                      label={topic}
+                      onDelete={() => handleRemoveTopic(topic)}
+                      deleteIcon={<TbX />}
+                      sx={{ fontSize: { xs: "0.75rem", md: "0.8125rem" } }}
+                    />
                   ))}
                 </Box>
               </Box>
-
-              <Box>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
-                >
-                  Created At
-                </Typography>
-                <Typography variant="body2">
-                  {new Date(selectedQuestion.createdAt).toLocaleString()}
-                </Typography>
-              </Box>
             </Stack>
-          )}
-        </DialogContent>
+          </DialogContent>
 
-        <DialogActions>
-          <Button
-            onClick={() => {
-              setOpenViewDialog(false);
-              setSelectedQuestion(null);
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button
+              onClick={() => {
+                setOpenDialog(false);
+                resetForm();
+              }}
+              sx={{
+                fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                textTransform: "capitalize",
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleCreateQuestion}
+              sx={{
+                fontSize: { xs: "1rem", md: "1.0625rem" },
+                textTransform: "uppercase",
+                fontWeight: 600,
+              }}
+            >
+              {isEditMode ? "Update Question" : "Create Question"}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* View Question Details Dialog */}
+        <Dialog
+          open={openViewDialog}
+          onClose={() => {
+            setOpenViewDialog(false);
+            setSelectedQuestion(null);
+          }}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              bgcolor: "#181818",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: 1.5,
+              backgroundImage: "none",
+            },
+          }}
+        >
+          <DialogTitle
+            sx={{
+              fontSize: { xs: "1.25rem", md: "1.375rem" }, // 20-22px
+              fontWeight: 600,
             }}
           >
-            Close
-          </Button>
-          {selectedQuestion && (
-            <>
-              <Button
-                variant="outlined"
-                startIcon={<TbEdit />}
-                onClick={() => {
-                  setOpenViewDialog(false);
-                  handleEditQuestion(selectedQuestion);
-                }}
-              >
-                Edit
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<TbTrash />}
-                onClick={() => {
-                  setOpenViewDialog(false);
-                  handleDeleteQuestion(
-                    selectedQuestion._id,
-                    selectedQuestion.title
-                  );
-                }}
-              >
-                Delete
-              </Button>
-            </>
-          )}
-        </DialogActions>
-      </Dialog>
+            Question Details
+          </DialogTitle>
+          <DialogContent>
+            {selectedQuestion && (
+              <Stack spacing={3} sx={{ mt: 1 }}>
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                    sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }}
+                  >
+                    Title
+                  </Typography>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontSize: { xs: "1.125rem", md: "1.25rem" },
+                      fontWeight: 600,
+                    }}
+                  >
+                    {selectedQuestion.title}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                    sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }}
+                  >
+                    Difficulty
+                  </Typography>
+                  <Chip
+                    label={selectedQuestion.difficulty.toUpperCase()}
+                    color={getDifficultyColor(selectedQuestion.difficulty)}
+                    size="small"
+                    sx={{
+                      fontSize: { xs: "0.75rem", md: "0.8125rem" },
+                      fontWeight: 600,
+                    }}
+                  />
+                </Box>
+
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                    sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }}
+                  >
+                    Description
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                      fontSize: { xs: "1rem", md: "1.0625rem" },
+                    }}
+                  >
+                    {selectedQuestion.description}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                    sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }}
+                  >
+                    Topics
+                  </Typography>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                    {selectedQuestion.topics.map((topic, index) => (
+                      <Chip
+                        key={index}
+                        label={topic}
+                        variant="outlined"
+                        sx={{ fontSize: { xs: "0.75rem", md: "0.8125rem" } }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                    sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }}
+                  >
+                    Created At
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }}
+                  >
+                    {new Date(selectedQuestion.createdAt).toLocaleString()}
+                  </Typography>
+                </Box>
+              </Stack>
+            )}
+          </DialogContent>
+
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button
+              onClick={() => {
+                setOpenViewDialog(false);
+                setSelectedQuestion(null);
+              }}
+              sx={{
+                fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                textTransform: "capitalize",
+              }}
+            >
+              Close
+            </Button>
+            {selectedQuestion && (
+              <>
+                <Button
+                  variant="outlined"
+                  startIcon={<TbEdit />}
+                  onClick={() => {
+                    setOpenViewDialog(false);
+                    handleEditQuestion(selectedQuestion);
+                  }}
+                  sx={{
+                    fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                    textTransform: "capitalize",
+                  }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<TbTrash />}
+                  onClick={() => {
+                    setOpenViewDialog(false);
+                    handleDeleteQuestion(
+                      selectedQuestion._id,
+                      selectedQuestion.title
+                    );
+                  }}
+                  sx={{
+                    fontSize: { xs: "0.875rem", md: "0.9375rem" },
+                    textTransform: "capitalize",
+                  }}
+                >
+                  Delete
+                </Button>
+              </>
+            )}
+          </DialogActions>
+        </Dialog>
+      </Box>
     </Box>
   );
 }

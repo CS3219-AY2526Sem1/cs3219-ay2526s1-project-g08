@@ -22,8 +22,10 @@ export const useMatchmaking = (
   const [timeProgress, setTimeProgress] = useState(0);
   const [isAccepting, setIsAccepting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasAccepted, setHasAccepted] = useState(false); // Track if user accepted
 
   const interval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasAcceptedRef = useRef(false); // Ref to track acceptance for WebSocket callback
 
   const findMatch = async () => {
     setMatch(null);
@@ -31,12 +33,16 @@ export const useMatchmaking = (
     setIsFinding(true);
     setTimeProgress(0);
     setError(null);
+    setHasAccepted(false); // Reset acceptance state
+    hasAcceptedRef.current = false; // Reset ref
 
     try {
       await connectWebSocket(async (msg: WebSocketMessage) => {
         if (msg.event === "match_found") {
           stopSearching(); // need to be initialised
           setIsAccepting(false); //to clear any state
+          setHasAccepted(false); // Reset acceptance for new match
+          hasAcceptedRef.current = false; // Reset ref
           setMatch(msg.match);
 
           // Fetch the question details using the questionId
@@ -60,34 +66,93 @@ export const useMatchmaking = (
         }
         if (msg.event === "match_declined") {
           console.log("Match declined:", msg.match.id);
+          console.log("Decline reason:", msg.reason);
+          console.log("Declining user ID:", msg.match.decliningUserId);
+          console.log("Current user ID:", userId);
+          console.log("Has accepted (ref):", hasAcceptedRef.current);
+
           const decliningUserId = msg.match.decliningUserId;
           const wasDeclinedByMe = decliningUserId === userId;
-          const declinedMatchId = msg.match.id;
 
           setMatch(msg.match);
 
           if (msg.reason === "timeout") {
-            stopSearching();
-            setError("Match timed out."); 
+            // Timeout case - only rejoin if user had accepted
+            if (hasAcceptedRef.current) {
+              // User accepted but peer didn't respond - auto rejoin
+              setError("The other user didn't respond. Rejoining the queue...");
+
+              // Clear match immediately to avoid showing stale match info
+              setMatch(null);
+              setQuestion(null);
+
+              setIsFinding(true);
+              setTimeProgress(0);
+
+              //using try-catch block in case joining queue is failed and preventing UI to stall
+              try {
+                await joinQueue({ id: userId, difficulty, language, topics });
+              } catch (err) {
+                console.error("Failed to rejoin queue after timeout:", err);
+                setError(
+                  "Failed to rejoin queue. Please hit Find Match again."
+                );
+                stopSearching();
+                return;
+              }
+
+              // Start the progress timer for the re-search
+              if (interval.current) {
+                clearInterval(interval.current);
+              }
+              interval.current = setInterval(() => {
+                setTimeProgress((t) => {
+                  const increment = t + 1;
+                  if (increment >= timeout) {
+                    stopSearching();
+                    setError(
+                      "No Match found. Please try again or try different topics/levels."
+                    );
+                    return timeout;
+                  }
+                  return increment;
+                });
+              }, 1000);
+
+              // Clear error message after 3 seconds
+              setTimeout(() => {
+                setError(null);
+              }, 3000);
+            } else {
+              // User didn't accept in time - don't rejoin
+              stopSearching();
+              setError("You didn't accept in time.");
+            }
           } else if (wasDeclinedByMe) {
-            //show error and allow user to decide on rejoining queue 
+            // User declined - show modal requiring manual action
+            stopSearching();
             setError("You declined the match.");
           } else {
-            setError("Match was declined by peer. Searching again..."); // Only set error state
+            // Peer declined - auto rejoin queue
+            setError("Match was declined by peer. Searching again...");
+
+            // Clear match immediately to avoid showing stale match info
+            setMatch(null);
+            setQuestion(null);
 
             setIsFinding(true);
             setTimeProgress(0);
 
-            //using try-catch block in case joining queue is failed and preventing UI to stall 
+            //using try-catch block in case joining queue is failed and preventing UI to stall
             try {
               await joinQueue({ id: userId, difficulty, language, topics });
             } catch (err) {
-              console.error("Failed to rejoin queue after decline:", err); //to debug when requeuing failed 
-              setError("Failed to rejoin queue. Please hit Find Match again."); //to notify user 
+              console.error("Failed to rejoin queue after decline:", err); //to debug when requeuing failed
+              setError("Failed to rejoin queue. Please hit Find Match again."); //to notify user
               stopSearching(); // stop the timer since we’re not actually queued
               return;
             }
-            
+
             // Start the progress timer for the re-search
             if (interval.current) {
               clearInterval(interval.current);
@@ -106,19 +171,9 @@ export const useMatchmaking = (
               });
             }, 1000);
 
-            // Clear the declined match after 3 seconds only if no new match found
+            // Clear error message after 3 seconds
             setTimeout(() => {
-              setMatch((currentMatch) => {
-                if (
-                  currentMatch?.id === declinedMatchId &&
-                  currentMatch.status === "declined"
-                ) {
-                  setError(null);
-                  return null;
-                }
-                // Don't clear if a new match has been found
-                return currentMatch;
-              });
+              setError(null);
             }, 3000);
           }
 
@@ -168,11 +223,15 @@ export const useMatchmaking = (
   const acceptMatch = async () => {
     if (!match) return;
     setIsAccepting(true);
+    setHasAccepted(true); // Mark that user has accepted
+    hasAcceptedRef.current = true; // Set ref for WebSocket callback
     try {
       await sendAccept(match.id);
     } catch (e) {
       setError("Failed to accept match");
       setIsAccepting(false);
+      setHasAccepted(false); // Reset if accept failed
+      hasAcceptedRef.current = false; // Reset ref if accept failed
     }
   };
 
@@ -194,6 +253,8 @@ export const useMatchmaking = (
     setIsAccepting(false);
     setTimeProgress(0);
     setError(null);
+    setHasAccepted(false); // Reset acceptance state
+    hasAcceptedRef.current = false; // Reset ref
     closeWebSocket();
   };
 
@@ -226,5 +287,6 @@ export const useMatchmaking = (
     timeProgress,
     error,
     resetMatch,
+    hasAccepted,
   };
 };
