@@ -88,7 +88,11 @@ jobs:
         working-directory: ./${{ matrix.service }}
         run: |
           echo "📦 Installing dependencies for ${{ matrix.service }}..."
-          npm ci
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Build
         working-directory: ./${{ matrix.service }}
@@ -133,7 +137,11 @@ jobs:
         working-directory: ./web-server
         run: |
           echo "📦 Installing dependencies for web-server..."
-          npm ci
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
 
       - name: Build frontend
         working-directory: ./web-server
@@ -239,7 +247,11 @@ jobs:
       - name: Run collaboration service integration tests
         working-directory: ./collaboration-service
         run: |
-          npm ci
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
           npm test
         env:
           MONGO_URI: mongodb://localhost:27017/test
