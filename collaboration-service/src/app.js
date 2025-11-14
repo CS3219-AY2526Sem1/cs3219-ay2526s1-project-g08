@@ -9,9 +9,17 @@ const httpServer = createServer(app);
 
 // Middleware
 app.use(helmet());
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://dtdp1nnlnq3yh.cloudfront.net",
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: allowedOrigins,
     credentials: true, // enable cookies and credentials
   })
 );
@@ -21,9 +29,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
+// ALB forwards full path /collaboration/*, so mount at /collaboration
 app.use("/collaboration", sessionRoutes);
 
-// Health check (direct access without ALB prefix)
+// Health check - ALB will call /health directly for target group health
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", service: "collaboration-service" });
 });

@@ -17,7 +17,13 @@ app.use(cookieParser());
 // from a different domain than the one the webpage was served from
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = ["http://localhost:3000", "http://localhost:3002"];
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:3002",
+    "http://localhost:5173",
+    "https://dtdp1nnlnq3yh.cloudfront.net", // CloudFront frontend
+    process.env.FRONTEND_URL, // Environment variable for flexibility
+  ].filter(Boolean); // Remove undefined values
 
   if (origin && allowedOrigins.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
@@ -40,13 +46,15 @@ app.use((req, res, next) => {
 // Health check endpoint for ALB (must be before route mounting)
 app.get("/user/health", (req, res) => {
   console.log(`Health check received from ${req.ip}`);
-  res.status(200).json({ status: "healthy", timestamp: new Date().toISOString() });
+  res
+    .status(200)
+    .json({ status: "healthy", timestamp: new Date().toISOString() });
 });
 
 // Environment-aware routing
 // Local development: /auth and /user (no prefix)
 // AWS deployment: /user/auth and /user (ALB routes /user/* to this service)
-const isLocalDevelopment = process.env.NODE_ENV !== 'production';
+const isLocalDevelopment = process.env.NODE_ENV !== "production";
 
 if (isLocalDevelopment) {
   // Local development - no /user prefix

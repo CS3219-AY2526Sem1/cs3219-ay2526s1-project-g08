@@ -194,7 +194,7 @@ deploy_service "question-service" ".aws/task-definitions/question-service.json"
 # Step 4: Build and Push Collaboration Service
 # ==============================================================================
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Step 4/5: Collaboration Service"
+echo "  Step 4/4: Collaboration Service"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 
@@ -202,15 +202,15 @@ build_and_push_image "collaboration-service" "collaboration-service" "collaborat
 deploy_service "collaboration-service" ".aws/task-definitions/collaboration-service.json"
 
 # ==============================================================================
-# Step 5: Build and Push Web Server
+# Note: Web Server is deployed to S3 + CloudFront (not ECS)
 # ==============================================================================
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  Step 5/5: Web Server (Frontend)"
+echo "  Frontend Deployment (S3 + CloudFront)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
-
-build_and_push_image "web-server" "web-server" "web-server"
-deploy_service "web-server" ".aws/task-definitions/web-server.json"
+echo "ℹ️  Web-server is deployed to S3 + CloudFront (not ECS)"
+echo "   CloudFront Domain: https://dtdp1nnlnq3yh.cloudfront.net"
+echo "   Deploy frontend with: cd web-server && npm run build && aws s3 sync dist/ s3://peerprep-frontend-prod --delete"
 echo ""
 
 # ==============================================================================
@@ -223,7 +223,7 @@ echo ""
 echo "This may take 2-3 minutes..."
 echo ""
 
-SERVICES=("user-service" "matching-service" "question-service" "collaboration-service" "web-server")
+SERVICES=("user-service" "matching-service" "question-service" "collaboration-service")
 
 for service in "${SERVICES[@]}"; do
     echo "⏳ Waiting for $service to stabilize..."
@@ -245,13 +245,14 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo "✅ All services deployed and running!"
 echo ""
-echo "🌐 Application URL:"
-echo "   $ALB_URL"
+echo "🌐 Application URLs:"
+echo "   Frontend: https://dtdp1nnlnq3yh.cloudfront.net"
+echo "   Backend API: $ALB_URL"
 echo ""
 echo "📊 Service Status:"
 aws ecs describe-services \
     --cluster $ECS_CLUSTER \
-    --services user-service matching-service question-service collaboration-service web-server \
+    --services user-service matching-service question-service collaboration-service \
     --region $AWS_REGION \
     --query 'services[*].[serviceName,desiredCount,runningCount,deployments[0].status]' \
     --output table
@@ -262,10 +263,9 @@ echo "   aws logs tail /ecs/user-service --follow --region $AWS_REGION"
 echo "   aws logs tail /ecs/matching-service --follow --region $AWS_REGION"
 echo "   aws logs tail /ecs/question-service --follow --region $AWS_REGION"
 echo "   aws logs tail /ecs/collaboration-service --follow --region $AWS_REGION"
-echo "   aws logs tail /ecs/web-server --follow --region $AWS_REGION"
 echo ""
 echo "🧪 Test your application:"
-echo "   1. Visit: $ALB_URL"
+echo "   1. Visit: https://dtdp1nnlnq3yh.cloudfront.net"
 echo "   2. Login with GitHub"
 echo "   3. Test matchmaking and collaboration features"
 echo ""

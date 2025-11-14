@@ -26,6 +26,7 @@ export interface UpdateQuestionData {
 }
 
 export async function getAllQuestions(): Promise<Question[]> {
+  // QUESTION_SERVICE_URL already has trailing slash: /questions/
   const response = await fetch(QUESTION_SERVICE_URL, {
     credentials: "include",
   });
@@ -38,7 +39,8 @@ export async function getAllQuestions(): Promise<Question[]> {
 }
 
 export async function getAllTopics(): Promise<string[]> {
-  const response = await fetch(`${QUESTION_SERVICE_URL}/topics`, {
+  // Remove leading slash to avoid double slash: /questions/ + topics = /questions/topics
+  const response = await fetch(`${QUESTION_SERVICE_URL}topics`, {
     credentials: "include",
   });
 
@@ -50,7 +52,8 @@ export async function getAllTopics(): Promise<string[]> {
 }
 
 export async function getQuestionById(questionId: string): Promise<Question> {
-  const response = await fetch(`${QUESTION_SERVICE_URL}/${questionId}`, {
+  // Remove leading slash to avoid double slash: /questions/ + {id} = /questions/{id}
+  const response = await fetch(`${QUESTION_SERVICE_URL}${questionId}`, {
     credentials: "include",
   });
 
@@ -94,7 +97,8 @@ export async function updateQuestion(
 ): Promise<Question> {
   console.log("Updating question:", { questionId, data });
 
-  const response = await fetch(`${QUESTION_SERVICE_URL}/${questionId}`, {
+  // Remove leading slash to avoid double slash: /questions/ + {id} = /questions/{id}
+  const response = await fetch(`${QUESTION_SERVICE_URL}${questionId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -121,7 +125,8 @@ export async function updateQuestion(
 export async function deleteQuestion(questionId: string): Promise<void> {
   console.log("Deleting question:", questionId);
 
-  const response = await fetch(`${QUESTION_SERVICE_URL}/${questionId}`, {
+  // Remove leading slash to avoid double slash: /questions/ + {id} = /questions/{id}
+  const response = await fetch(`${QUESTION_SERVICE_URL}${questionId}`, {
     method: "DELETE",
     credentials: "include",
   });
