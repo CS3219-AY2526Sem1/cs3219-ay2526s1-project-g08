@@ -11,6 +11,20 @@ import Layout from "./components/Layout";
 import AuthCallback from "./pages/AuthCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
 import HistoryPage from "./pages/HistoryPage";
+import { MatchmakingProvider } from "./hooks/MatchmakingGlobal"; // Import the new provider
+import { useAuth } from "./hooks/useAuth"; // Assuming useAuth is available for userId
+
+//wrapper Component to access useAuth to use UserID for matchmaking 
+const ProtectedLayout = () => {
+    const { user } = useAuth(); // Get user from Auth context
+    if (!user) return <Layout />; // Or a loading spinner
+
+    return (
+        <MatchmakingProvider userId={user.userId || "guest"}>
+            <Layout />
+        </MatchmakingProvider>
+    );
+};
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
@@ -19,7 +33,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route element={<Layout />}>
+
+          {/* using ProtectedLayout based in wrapper above */}
+          <Route element={<ProtectedLayout />}> 
             <Route
               path="home"
               element={
