@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { FiClock, FiMessageSquare, FiUser } from 'react-icons/fi'; // Using react-icons
 import { useAuth } from '../hooks/useAuth';
 import * as HistoryPageStyle from '../components/HistoryPageStyle';
+import { getQuestionById } from '../services/questionService';
 import config from '../config/environment';
 
 interface HistoryItem {
@@ -11,14 +12,6 @@ interface HistoryItem {
   topics: string[];
   completedAt: string;
   participants: string[];
-}
-
-interface QuestionDetails { 
-    _id: string; 
-    title: string; 
-    description: string; 
-    difficulty: 'easy' | 'medium' | 'hard'; 
-    topics: string[]; 
 }
 
 // Helper function to format date
@@ -75,13 +68,8 @@ export default function HistoryPage() {
                     let questionTitle = `Question ${item.questionId}`;
                     
                     try {
-                        const questionRes = await fetch(
-                            `${config.api.questionService}/${item.questionId}`
-                        );
-                        if (questionRes.ok) {
-                            const questionData = await questionRes.json() as QuestionDetails;
-                            questionTitle = questionData.title;
-                        }
+                        const questionData = await getQuestionById(item.questionId);
+                        questionTitle = questionData.title;
                     } catch (err) {
                         console.error(`Failed to fetch question ${item.questionId}:`, err);
                     }

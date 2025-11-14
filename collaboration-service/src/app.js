@@ -29,9 +29,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
+// ALB forwards full path /collaboration/*, so mount at /collaboration
 app.use("/collaboration", sessionRoutes);
 
-// Health check (direct access without ALB prefix)
+// Health check - ALB will call /health directly for target group health
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", service: "collaboration-service" });
 });

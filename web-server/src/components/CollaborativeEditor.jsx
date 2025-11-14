@@ -3,7 +3,7 @@ import Editor from '@monaco-editor/react';
 import YjsCollaboration from '../services/yjsCollaboration';
 import './CollaborativeEditor.css';
 import { useNavigate } from 'react-router-dom';
-import config from '../config/environment';
+import { getQuestionById } from '../services/questionService';
 
 function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
   const [connectedUsers, setConnectedUsers] = useState([]);
@@ -17,26 +17,14 @@ function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
     // Fetch question data when component mounts
     const fetchQuestionData = async () => {
       try {
-        // Get a random question from the question service
-        const response = await fetch(`${config.api.questionService}/${questionId}`);
-        if (response.ok) {
-          const questionData = await response.json();
-          setQuestionData({
-            title: questionData.title,
-            description: questionData.description,
-            difficulty: questionData.difficulty,
-            topics: questionData.topics.join(', ')
-          });
-        } else {
-          console.error('Failed to fetch question:', response.status);
-          // Set fallback question data
-          setQuestionData({
-            title: "Collaborative Coding Session",
-            description: "Welcome to your collaborative coding session! Unable to load question.",
-            difficulty: "Null",
-            topics: "Null"
-          });
-        }
+        // Use the questionService to fetch the question
+        const questionData = await getQuestionById(questionId);
+        setQuestionData({
+          title: questionData.title,
+          description: questionData.description,
+          difficulty: questionData.difficulty,
+          topics: questionData.topics.join(', ')
+        });
       } catch (error) {
         console.error('Error fetching question:', error);
         // Set fallback question data

@@ -1,6 +1,6 @@
-// Environment configuration v2.0
-// Automatically detects if running locally or deployed
-// Socket.IO uses HTTP protocol (auto-upgrades to WebSocket)
+// Environment configuration v3.0
+// CloudFront now proxies both frontend (S3) and backend (ALB)
+// All requests go through CloudFront domain - no more mixed content issues!
 
 const currentHost = window.location.hostname;
 
@@ -10,6 +10,8 @@ const isLocalDevelopment =
 
 // Base URLs for different environments
 const LOCAL_BASE_URL = "http://localhost:3002";
+// In production, use same-origin (CloudFront) for all API calls
+// CloudFront will route /user/* /questions/* /matching/* /collaboration/* to ALB
 const PROD_BASE_URL = window.location.origin;
 
 export const config = {
@@ -21,23 +23,23 @@ export const config = {
       : `${PROD_BASE_URL}/user`,
     questionService: isLocalDevelopment
       ? "http://localhost:3003/questions"
-      : `${PROD_BASE_URL}/questions`,
+      : `${PROD_BASE_URL}/questions/`, // Trailing slash to match CloudFront /questions/* pattern
     matchingService: isLocalDevelopment
       ? "http://localhost:3001"
-      : `${PROD_BASE_URL}/matching`,
+      : `${PROD_BASE_URL}/matching`, // Not used for HTTP, only WebSocket
     collaborationService: isLocalDevelopment
       ? "http://localhost:3004/collaboration"
-      : `${PROD_BASE_URL}/collaboration`,
+      : `${PROD_BASE_URL}/collaboration/`, // Trailing slash to match CloudFront /collaboration/* pattern
   },
 
   // WebSocket endpoints
   ws: {
     matchingService: isLocalDevelopment
       ? "ws://localhost:3001"
-      : `ws://${currentHost}/matching`,
+      : `wss://${window.location.host}/matching/`, // Trailing slash to match /matching/* CloudFront pattern
     collaborationService: isLocalDevelopment
       ? "http://localhost:3004"
-      : `http://${currentHost}`, // Path configured in Socket.IO client
+      : `https://${window.location.host}`, // Socket.IO client will add /collaboration/socket.io path
   },
 
   // Auth endpoints
