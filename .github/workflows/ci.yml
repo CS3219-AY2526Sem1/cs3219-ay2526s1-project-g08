@@ -98,7 +98,11 @@ jobs:
         working-directory: ./${{ matrix.service }}
         run: |
           echo "🔨 Building ${{ matrix.service }}..."
-          npm run build
+          if grep -q '"build":' package.json; then
+            npm run build
+          else
+            echo "⚠️ No build script found - skipping build (JavaScript service)"
+          fi
 
       - name: Run tests
         working-directory: ./${{ matrix.service }}
@@ -113,6 +117,7 @@ jobs:
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
+        if: hashFiles(format('./{0}/dist', matrix.service)) != ''
         with:
           name: ${{ matrix.service }}-build
           path: ./${{ matrix.service }}/dist
