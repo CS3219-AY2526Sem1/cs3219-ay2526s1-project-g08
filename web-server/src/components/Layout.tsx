@@ -17,6 +17,7 @@ import {
   Stack,
   Alert,
   Divider,
+  Snackbar, //added for auto-dismissing notification
 } from "@mui/material";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { TbHome, TbUser, TbLogout, TbShieldCheck } from "react-icons/tb";
@@ -29,7 +30,7 @@ const SIDEBAR_WIDTH = 240;
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAdmin, user } = useAuth(); //need user object to check ID
+  const { isAdmin } = useAuth();
 
   const {
     match,
@@ -42,6 +43,8 @@ export default function Layout() {
     resetMatch, //for clearing declined state
     currentUserId, //to use in acceptance msg
     cancelSearch, //for cancel button in global searching bar
+    error, //to detect timeout case
+    hasAccepted, //to check if user accepted before timeout
   } = useMatchmakingContext();
 
   const peerId =
@@ -52,6 +55,8 @@ export default function Layout() {
   const declinedByMe = match?.decliningUserId === currentUserId;
 
   const [matchTimeLeft, setMatchTimeLeft] = useState(15);
+  const [showDeclineNotification, setShowDeclineNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
 
   const menuItems = [
     { path: "/home", label: "Home", icon: <TbHome /> },
@@ -110,6 +115,41 @@ export default function Layout() {
     }
   }, [match, navigate]);
 
+  // Show notification when peer declines or timeout occurs
+  useEffect(() => {
+    if (match?.status === "declined" && !declinedByMe) {
+      // Check if it's a timeout or peer decline
+      if (error?.includes("didn't respond")) {
+        // Peer didn't respond, user accepted - show notification
+        setNotificationMessage(
+          "The other user didn't respond. Rejoining the queue…"
+        );
+        setShowDeclineNotification(true);
+
+        // Auto-hide after 3 seconds
+        const timer = setTimeout(() => {
+          setShowDeclineNotification(false);
+        }, 3000);
+        return () => clearTimeout(timer);
+      } else if (error?.includes("didn't accept in time")) {
+        // User didn't accept in time - don't show notification, modal will handle it
+        setShowDeclineNotification(false);
+      } else {
+        // Peer declined - show notification
+        setNotificationMessage(
+          "Your peer declined the match. Rejoining the queue…"
+        );
+        setShowDeclineNotification(true);
+
+        // Auto-hide after 3 seconds
+        const timer = setTimeout(() => {
+          setShowDeclineNotification(false);
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [match?.status, match?.id, declinedByMe, error]);
+
   useEffect(() => {
     if (match?.status !== "pending") {
       pendingDeadlineRef.current = null;
@@ -140,7 +180,11 @@ export default function Layout() {
       if (remaining === 0) {
         clearInterval(timerRef.current!);
         timerRef.current = null;
-        declineMatch(); //decline match since time to accept has ended
+        // Only decline if user hasn't accepted yet
+        // If user accepted, backend will handle the timeout
+        if (!hasAccepted) {
+          declineMatch(); //decline match since time to accept has ended
+        }
       }
     }, 1000);
 
@@ -150,7 +194,7 @@ export default function Layout() {
         timerRef.current = null;
       }
     };
-  }, [match?.id, match?.status, declineMatch]); // declineMatch is a stable context function
+  }, [match?.id, match?.status, declineMatch, hasAccepted]); // Added hasAccepted to dependencies
 
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>
@@ -352,29 +396,47 @@ export default function Layout() {
         </Dialog>
       )}
 
-      {/* ADD: Persistent Match Declined/Timed Out Dialog */}
-      {match && match.status === "declined" && (
-        <Dialog open maxWidth="sm" fullWidth>
-          <DialogTitle>
-            {declinedByMe ? "Match Declined" : "Match Ended"}
-          </DialogTitle>
-          <DialogContent>
-            <Alert severity={declinedByMe ? "info" : "warning"}>
-              <Typography variant="body1">
-                {declinedByMe
-                  ? "You declined the match. Click close to search again."
-                  : "The match was declined by your peer or timed out. Click close to search again."}
-              </Typography>
-            </Alert>
-          </DialogContent>
-          <DialogActions>
-            {/* NOTE: Use resetMatch from context to clear state */}
-            <Button onClick={resetMatch} autoFocus>
-              Close
-            </Button>
-          </DialogActions>
-        </Dialog>
-      )}
+      {/* ADD: Persistent Match Declined Dialog - For user's own decline or timeout */}
+      {match &&
+        match.status === "declined" &&
+        (declinedByMe || error?.includes("didn't accept in time")) && (
+          <Dialog open maxWidth="sm" fullWidth>
+            <DialogTitle>
+              {declinedByMe ? "Match Declined" : "Match Timed Out"}
+            </DialogTitle>
+            <DialogContent>
+              <Alert severity="info">
+                <Typography variant="body1">
+                  {declinedByMe
+                    ? "You declined the match. Click close to search again."
+                    : "You didn't accept in time. Click close to search again."}
+                </Typography>
+              </Alert>
+            </DialogContent>
+            <DialogActions>
+              {/* NOTE: Use resetMatch from context to clear state */}
+              <Button onClick={resetMatch} autoFocus>
+                Close
+              </Button>
+            </DialogActions>
+          </Dialog>
+        )}
+
+      {/* Auto-dismissing notification for peer decline or timeout */}
+      <Snackbar
+        open={showDeclineNotification}
+        autoHideDuration={3000}
+        onClose={() => setShowDeclineNotification(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity="warning"
+          onClose={() => setShowDeclineNotification(false)}
+          sx={{ width: "100%" }}
+        >
+          {notificationMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
