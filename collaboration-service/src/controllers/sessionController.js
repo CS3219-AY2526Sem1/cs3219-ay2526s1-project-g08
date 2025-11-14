@@ -87,6 +87,7 @@ router.get("/sessions/:sessionId", authenticateToken, async (req, res) => {
         language: session.language,
         connectedUsers: session.connectedUsers.map((u) => u.userId),
         yjsState: session.yjsState ? session.yjsState.toString("base64") : null,
+        status: session.status,
       },
     });
   } catch (err) {
