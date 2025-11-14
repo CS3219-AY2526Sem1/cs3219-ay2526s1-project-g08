@@ -11,7 +11,7 @@ class SocketServer {
       "http://localhost:3000",
       "http://localhost:5173",
       "https://dtdp1nnlnq3yh.cloudfront.net",
-      process.env.FRONTEND_URL
+      process.env.FRONTEND_URL,
     ].filter(Boolean);
 
     this.io = new Server(httpServer, {

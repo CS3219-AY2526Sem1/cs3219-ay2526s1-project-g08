@@ -14,7 +14,7 @@ async function main() {
       "http://localhost:3000",
       "http://localhost:5173",
       "https://dtdp1nnlnq3yh.cloudfront.net",
-      process.env.FRONTEND_URL
+      process.env.FRONTEND_URL,
     ].filter(Boolean);
 
     if (origin && allowedOrigins.includes(origin)) {

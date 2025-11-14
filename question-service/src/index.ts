@@ -14,7 +14,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
   "https://dtdp1nnlnq3yh.cloudfront.net",
-  process.env.FRONTEND_URL
+  process.env.FRONTEND_URL,
 ].filter((origin): origin is string => Boolean(origin));
 
 app.use(

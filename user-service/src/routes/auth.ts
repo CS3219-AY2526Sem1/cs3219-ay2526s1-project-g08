@@ -17,25 +17,32 @@ const REFRESH_TOKEN_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const REFRESH_TOKEN_DAYS = 30;
 
 // Environment-aware URLs
-const OAUTH_REDIRECT_URI = process.env.OAUTH_REDIRECT_URI || "http://localhost:3002/auth/callback";
+const OAUTH_REDIRECT_URI =
+  process.env.OAUTH_REDIRECT_URI || "http://localhost:3002/auth/callback";
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
 router.get("/github", (req, res) => {
   // Prevent caching of auth redirect
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, private"
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   const redirectUri = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&scope=read:user&redirect_uri=${OAUTH_REDIRECT_URI}`;
   res.redirect(redirectUri);
 });
 
 router.get("/callback", async (req, res) => {
   // Prevent caching of auth callback - always execute fresh
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, private"
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   const code = req.query.code as string;
   if (!code) return res.status(400).send("No code provided");
 
@@ -106,29 +113,33 @@ router.get("/callback", async (req, res) => {
     );
 
     // Detect if request came through HTTPS (CloudFront sets these headers)
-    const isSecure = 
-      req.headers['x-forwarded-proto'] === 'https' || 
-      req.headers['cloudfront-forwarded-proto'] === 'https' ||
-      req.protocol === 'https';
+    const isSecure =
+      req.headers["x-forwarded-proto"] === "https" ||
+      req.headers["cloudfront-forwarded-proto"] === "https" ||
+      req.protocol === "https";
 
     // CloudFront only serves HTTPS, so always use secure cookies in production
-    const shouldUseSecure = process.env.NODE_ENV === 'production' || isSecure;
+    const shouldUseSecure = process.env.NODE_ENV === "production" || isSecure;
 
-    console.log("Cookie security settings:", { 
-      isSecure, 
+    console.log("Cookie security settings:", {
+      isSecure,
       shouldUseSecure,
       nodeEnv: process.env.NODE_ENV,
       proto: req.protocol,
-      xForwardedProto: req.headers['x-forwarded-proto'],
-      cloudfrontProto: req.headers['cloudfront-forwarded-proto'],
-      allHeaders: Object.keys(req.headers).filter(h => h.toLowerCase().includes('proto') || h.toLowerCase().includes('forward'))
+      xForwardedProto: req.headers["x-forwarded-proto"],
+      cloudfrontProto: req.headers["cloudfront-forwarded-proto"],
+      allHeaders: Object.keys(req.headers).filter(
+        (h) =>
+          h.toLowerCase().includes("proto") ||
+          h.toLowerCase().includes("forward")
+      ),
     });
 
     // Cookie configuration for both tokens
     const cookieConfig = {
       httpOnly: true,
       secure: shouldUseSecure, // Always true in production (CloudFront is HTTPS-only)
-      sameSite: shouldUseSecure ? "none" as const : "lax" as const,
+      sameSite: shouldUseSecure ? ("none" as const) : ("lax" as const),
       path: "/",
     };
 
@@ -168,10 +179,13 @@ router.get("/callback", async (req, res) => {
 
 router.post("/logout", async (req, res) => {
   // Prevent caching of logout
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, private"
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   try {
     // Get refresh token from cookie
     const refreshToken = req.cookies?.refreshToken;
@@ -183,12 +197,12 @@ router.post("/logout", async (req, res) => {
     }
 
     // Detect if request came through HTTPS
-    const isSecure = 
-      req.headers['x-forwarded-proto'] === 'https' || 
-      req.headers['cloudfront-forwarded-proto'] === 'https' ||
-      req.protocol === 'https';
+    const isSecure =
+      req.headers["x-forwarded-proto"] === "https" ||
+      req.headers["cloudfront-forwarded-proto"] === "https" ||
+      req.protocol === "https";
 
-    const shouldUseSecure = process.env.NODE_ENV === 'production' || isSecure;
+    const shouldUseSecure = process.env.NODE_ENV === "production" || isSecure;
 
     // Clear both cookies with matching settings
     res.clearCookie("token", {
@@ -218,10 +232,13 @@ router.post("/logout", async (req, res) => {
  */
 router.post("/refresh", async (req, res) => {
   // Prevent caching of token refresh
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, private"
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   try {
     // Get refresh token from cookie
     const refreshToken = req.cookies?.refreshToken;
@@ -256,12 +273,12 @@ router.post("/refresh", async (req, res) => {
     const accessTokenMs = ACCESS_TOKEN_MS;
 
     // Detect if request came through HTTPS
-    const isSecure = 
-      req.headers['x-forwarded-proto'] === 'https' || 
-      req.headers['cloudfront-forwarded-proto'] === 'https' ||
-      req.protocol === 'https';
+    const isSecure =
+      req.headers["x-forwarded-proto"] === "https" ||
+      req.headers["cloudfront-forwarded-proto"] === "https" ||
+      req.protocol === "https";
 
-    const shouldUseSecure = process.env.NODE_ENV === 'production' || isSecure;
+    const shouldUseSecure = process.env.NODE_ENV === "production" || isSecure;
 
     // Set new access token cookie
     res.cookie("token", newAccessToken, {
