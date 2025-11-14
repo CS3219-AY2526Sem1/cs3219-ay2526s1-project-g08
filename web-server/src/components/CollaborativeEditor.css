@@ -64,30 +64,46 @@
 }
 
 .question-header {
-  padding: 20px;
+  padding: 10px 20px;
   border-bottom: 1px solid #3e3e3e;
   background-color: #2d2d2d;
 }
 
 .question-header h2 {
-  margin: 0 0 10px 0;
   color: #d4d4d4;
   font-size: 18px;
   font-weight: 600;
 }
 
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center; /* optional: vertically center */
+}
+
 .question-meta {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 20px;
+}
+
+.topic-chip {
+  padding: 4px 10px;
+  border: 1px solid #3e3e3e;
+  border-radius: 16px;
+  font-size: 12px;
+  color: #d4d4d4;
+  background-color: transparent;
+  display: inline-block;
 }
 
 .difficulty {
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 20px;
   font-size: 12px;
-  font-weight: bold;
   text-transform: uppercase;
-  color: white;
+  color: black;
   background-color: #6c757d; /* For unknown difficulties */
 }
 
@@ -101,15 +117,6 @@
 
 .difficulty.hard {
   background-color: #f44336;
-}
-
-.topics {
-  padding: 4px 8px;
-  background-color: #007acc;
-  color: white;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
 }
 
 .question-description {

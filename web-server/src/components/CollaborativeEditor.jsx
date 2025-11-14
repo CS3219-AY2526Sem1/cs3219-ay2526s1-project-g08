@@ -25,7 +25,7 @@ function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
             title: questionData.title,
             description: questionData.description,
             difficulty: questionData.difficulty,
-            topics: questionData.topics.join(', ')
+            topics: questionData.topics // Keep as array for rendering chips
           });
         } else {
           console.error('Failed to fetch question:', response.status);
@@ -34,7 +34,7 @@ function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
             title: "Collaborative Coding Session",
             description: "Welcome to your collaborative coding session! Unable to load question.",
             difficulty: "Null",
-            topics: "Null"
+            topics: []
           });
         }
       } catch (error) {
@@ -44,7 +44,7 @@ function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
           title: "Collaborative Coding Session",
           description: "Welcome to your collaborative coding session! Unable to load question.",
           difficulty: "Null",
-          topics: "Null"
+          topics: []
         });
       }
     };
@@ -124,16 +124,26 @@ function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
       <div className="editor-content">
         <div className="question-panel">
           <div className="question-header">
-            <h2>{questionData?.title || 'Loading...'}</h2>
-            <div className="question-meta">
-              <span className={`difficulty ${questionData?.difficulty?.toLowerCase() || ''}`}>
+            <div className="header-row">
+              <h2>{questionData?.title || 'Loading...'}</h2>
+              <span
+                className={`difficulty ${questionData?.difficulty?.toLowerCase() || ''}`}
+              >
                 {questionData?.difficulty}
               </span>
-              <span className="topics">{questionData?.topics}</span>
             </div>
           </div>
+
           <div className="question-description">
             <p>{questionData?.description || 'Loading question details...'}</p>
+          </div>
+          
+          <div className="question-meta">
+            {questionData?.topics?.map((topic, index) => (
+              <span key={index} className="topic-chip">
+                {topic}
+              </span>
+            ))}
           </div>
         </div>
         
