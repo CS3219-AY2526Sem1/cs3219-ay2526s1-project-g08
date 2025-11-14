@@ -70,7 +70,7 @@ export const useMatchmaking = (
           console.log("Declining user ID:", msg.match.decliningUserId);
           console.log("Current user ID:", userId);
           console.log("Has accepted (ref):", hasAcceptedRef.current);
-          
+
           const decliningUserId = msg.match.decliningUserId;
           const wasDeclinedByMe = decliningUserId === userId;
 
@@ -129,10 +129,12 @@ export const useMatchmaking = (
               setError("You didn't accept in time.");
             }
           } else if (wasDeclinedByMe) {
-            //show error and allow user to decide on rejoining queue
+            // User declined - show modal requiring manual action
+            stopSearching();
             setError("You declined the match.");
           } else {
-            setError("Match was declined by peer. Searching again..."); // Only set error state
+            // Peer declined - auto rejoin queue
+            setError("Match was declined by peer. Searching again...");
 
             // Clear match immediately to avoid showing stale match info
             setMatch(null);
