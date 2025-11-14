@@ -3,7 +3,7 @@ import Editor from "@monaco-editor/react";
 import YjsCollaboration from "../services/yjsCollaboration";
 import "./CollaborativeEditor.css";
 import { useNavigate } from "react-router-dom";
-import { getQuestionById } from "../services/questionService";
+import config from "../config/environment";
 
 function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
   const [connectedUsers, setConnectedUsers] = useState([]);

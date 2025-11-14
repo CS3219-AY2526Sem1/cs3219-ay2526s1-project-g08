@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import Editor from "@monaco-editor/react";
 import * as Y from "yjs";
 import "./CollaborativeEditor.css";
-import { getQuestionById } from "../services/questionService";
 import config from "../config/environment";
 
 function CollaborativeViewer({ sessionId, authToken, language, questionId }) {
