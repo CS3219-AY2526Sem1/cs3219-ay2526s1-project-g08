@@ -60,7 +60,7 @@ function CollaborativeViewer({ sessionId, authToken, language, questionId }) {
 
       try {
         const response = await fetch(
-          `${config.api.collaborationService}/sessions/${sessionId}`,
+          `${config.api.collaborationService}sessions/${sessionId}`,
           {
             headers: {
               Authorization: `Bearer ${authToken}`,
