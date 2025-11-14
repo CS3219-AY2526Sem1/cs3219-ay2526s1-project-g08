@@ -20,7 +20,13 @@ import {
   Snackbar, //added for auto-dismissing notification
 } from "@mui/material";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { TbHome, TbUser, TbLogout, TbShieldCheck, TbHistory } from "react-icons/tb";
+import {
+  TbHome,
+  TbUser,
+  TbLogout,
+  TbShieldCheck,
+  TbHistory,
+} from "react-icons/tb";
 import { useAuth } from "../hooks/useAuth";
 import { stopTokenRefreshTimer } from "../utils/tokenRefresh";
 import { useMatchmakingContext } from "../hooks/MatchmakingGlobal";
@@ -57,6 +63,14 @@ export default function Layout() {
   const [matchTimeLeft, setMatchTimeLeft] = useState(15);
   const [showDeclineNotification, setShowDeclineNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
+
+  // Debug log for notification state
+  useEffect(() => {
+    console.log("🔔 Snackbar state changed:", {
+      showDeclineNotification,
+      notificationMessage,
+    });
+  }, [showDeclineNotification, notificationMessage]);
 
   const menuItems = [
     { path: "/home", label: "Home", icon: <TbHome /> },
@@ -118,38 +132,42 @@ export default function Layout() {
 
   // Show notification when peer declines or timeout occurs
   useEffect(() => {
-    if (match?.status === "declined" && !declinedByMe) {
-      // Check if it's a timeout or peer decline
-      if (error?.includes("didn't respond")) {
-        // Peer didn't respond, user accepted - show notification
-        setNotificationMessage(
-          "The other user didn't respond. Rejoining the queue…"
-        );
-        setShowDeclineNotification(true);
+    console.log("📢 Notification useEffect triggered:", {
+      matchStatus: match?.status,
+      declinedByMe,
+      error,
+      showDeclineNotification,
+    });
 
-        // Auto-hide after 3 seconds
-        const timer = setTimeout(() => {
-          setShowDeclineNotification(false);
-        }, 3000);
-        return () => clearTimeout(timer);
-      } else if (error?.includes("didn't accept in time")) {
-        // User didn't accept in time - don't show notification, modal will handle it
+    // Check for peer-related errors that should show notifications
+    if (error?.includes("didn't respond")) {
+      console.log("→ Case: Peer didn't respond");
+      // Peer didn't respond, user accepted - show notification
+      setNotificationMessage(
+        "The other user didn't respond. Rejoining the queue…"
+      );
+      setShowDeclineNotification(true);
+
+      // Auto-hide after 3 seconds
+      const timer = setTimeout(() => {
         setShowDeclineNotification(false);
-      } else {
-        // Peer declined - show notification
-        setNotificationMessage(
-          "Your peer declined the match. Rejoining the queue…"
-        );
-        setShowDeclineNotification(true);
+      }, 3000);
+      return () => clearTimeout(timer);
+    } else if (error?.includes("declined by peer")) {
+      console.log("→ Case: Peer declined");
+      // Peer declined - show notification
+      setNotificationMessage(
+        "Your peer declined the match. Rejoining the queue…"
+      );
+      setShowDeclineNotification(true);
 
-        // Auto-hide after 3 seconds
-        const timer = setTimeout(() => {
-          setShowDeclineNotification(false);
-        }, 3000);
-        return () => clearTimeout(timer);
-      }
+      // Auto-hide after 3 seconds
+      const timer = setTimeout(() => {
+        setShowDeclineNotification(false);
+      }, 3000);
+      return () => clearTimeout(timer);
     }
-  }, [match?.status, match?.id, declinedByMe, error]);
+  }, [error]);
 
   useEffect(() => {
     if (match?.status !== "pending") {
