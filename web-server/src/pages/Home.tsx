@@ -10,51 +10,56 @@ import {
   TextField,
   Alert,
   Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Chip,
   OutlinedInput,
   SelectChangeEvent,
   Divider,
 } from "@mui/material";
-import { useMatchmaking } from "../hooks/useMatchmaking";
+
 import { getAllTopics } from "../services/questionService";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useMatchmakingContext } from '../hooks/MatchmakingGlobal'; // New import
 
 export default function Home() {
   const { user } = useAuth();
-  const [userId, setUserId] = useState(user?.userId || "user123");
-  const [difficulty, setDifficulty] = useState("easy");
-  const [language, setLanguage] = useState("python");
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+
+  const [localUserId, setLocalUserId] = useState(user?.userId || "user123");
+  const [localDifficulty, setLocalDifficulty] = useState("easy");
+  const [localLanguage, setLocalLanguage] = useState("python");
+  const [localSelectedTopics, setLocalSelectedTopics] = useState<string[]>([]);
+
   const [availableTopics, setAvailableTopics] = useState<string[]>([]);
   const [loadingTopics, setLoadingTopics] = useState(true);
   const [lastTopicRefresh, setLastTopicRefresh] = useState<Date | null>(null);
-  const [matchTimeLeft, setMatchTimeLeft] = useState(15);
   const navigate = useNavigate();
 
   // Update userId when user data becomes available
   useEffect(() => {
     if (user?.userId) {
-      setUserId(user.userId);
+      setLocalUserId(user.userId);
     }
-  }, [user]);
+  }, [user?.userId]);
 
   const {
     match,
-    question,
     findMatch,
     cancelSearch,
-    acceptMatch,
-    declineMatch,
     isFinding,
-    isAccepting,
     timeProgress,
     error,
-  } = useMatchmaking(userId, difficulty, language, selectedTopics, 60);
+    setMatchParams, //new setter added to matchmaking
+  } = useMatchmakingContext();
+
+  // useEffect to send arguments to persistent context  
+  useEffect(() => {
+    setMatchParams({
+      userId: localUserId,
+      difficulty: localDifficulty,
+      language: localLanguage,
+      topics: localSelectedTopics,
+    });
+  }, [localUserId, localDifficulty, localLanguage, localSelectedTopics, setMatchParams]);
 
   // Fetch available topics from database on component mount and refresh periodically
   useEffect(() => {
@@ -66,7 +71,7 @@ export default function Home() {
         setLastTopicRefresh(new Date());
 
         // Remove any selected topics that are no longer available
-        setSelectedTopics((prev) =>
+        setLocalSelectedTopics((prev) =>
           prev.filter((topic) => topics.includes(topic))
         );
       } catch (err) {
@@ -93,7 +98,7 @@ export default function Home() {
       setLastTopicRefresh(new Date());
 
       // Remove any selected topics that are no longer available
-      setSelectedTopics((prev) =>
+      setLocalSelectedTopics((prev) =>
         prev.filter((topic) => topics.includes(topic))
       );
     } catch (err) {
@@ -104,44 +109,15 @@ export default function Home() {
   };
 
   const handleTopicChange = (
-    event: SelectChangeEvent<typeof selectedTopics>
+    event: SelectChangeEvent<typeof localSelectedTopics>
   ) => {
     const {
       target: { value },
     } = event;
-    setSelectedTopics(typeof value === "string" ? value.split(",") : value);
+    setLocalSelectedTopics(typeof value === "string" ? value.split(",") : value);
   };
 
-  // Navigate to collaboration only when match is accepted
-  useEffect(() => {
-    if (match && match.sessionId && match.status === "accepted") {
-      // Both users have accepted, navigate to session
-      console.log("Match accepted, navigating to:", match.sessionId);
-      navigate(`/collaboration/${match.sessionId}`);
-    }
-  }, [match, navigate]);
-
-  // Countdown timer for match acceptance (15 seconds)
-  useEffect(() => {
-    if (match && match.status === "pending") {
-      setMatchTimeLeft(15);
-
-      const timer = setInterval(() => {
-        setMatchTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            // Auto-decline when time runs out
-            declineMatch();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [match?.id]); // Only trigger when match ID changes
-
+  //to be called by MatchMaking global 
   const handleFindMatch = async () => {
     await findMatch();
   };
@@ -154,8 +130,8 @@ export default function Home() {
 
       <TextField
         label="User ID"
-        value={userId}
-        onChange={(e) => setUserId(e.target.value)}
+        value={localUserId}
+        onChange={(e) => setLocalUserId(e.target.value)}
         fullWidth
         sx={{ mb: 3 }}
       />
@@ -164,8 +140,8 @@ export default function Home() {
         <InputLabel id="difficulty-label">Difficulty</InputLabel>
         <Select
           labelId="difficulty-label"
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
+          value={localDifficulty}
+          onChange={(e) => setLocalDifficulty(e.target.value)}
         >
           <MenuItem value="easy">Easy</MenuItem>
           <MenuItem value="medium">Medium</MenuItem>
@@ -177,8 +153,8 @@ export default function Home() {
         <InputLabel id="language-label">Language</InputLabel>
         <Select
           labelId="language-label"
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
+          value={localLanguage}
+          onChange={(e) => setLocalLanguage(e.target.value)}
         >
           <MenuItem value="python">Python</MenuItem>
           <MenuItem value="java">Java</MenuItem>
@@ -191,7 +167,7 @@ export default function Home() {
         <Select
           labelId="topics-label"
           multiple
-          value={selectedTopics}
+          value={localSelectedTopics}
           onChange={handleTopicChange}
           input={<OutlinedInput label="Topics" />}
           renderValue={(selected) => (
@@ -202,7 +178,7 @@ export default function Home() {
                   label={value}
                   size="small"
                   onDelete={() => {
-                    setSelectedTopics((prev) =>
+                    setLocalSelectedTopics((prev) =>
                       prev.filter((t) => t !== value)
                     );
                   }}
@@ -272,6 +248,8 @@ export default function Home() {
         )}
       </Stack>
 
+      {/* HANDLED BY LAYOUT INSTEAD, commented titles in between 
+
       {match && match.status === "pending" && (
         <Dialog open maxWidth="sm" fullWidth>
           <DialogTitle>
@@ -292,7 +270,7 @@ export default function Home() {
           </DialogTitle>
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
-              {/* Acceptance Status */}
+              // Acceptance Status //
               <Alert
                 severity="info"
                 sx={{
@@ -318,7 +296,7 @@ export default function Home() {
                 </Box>
               </Alert>
 
-              {/* Peer Information */}
+              // Peer Information //
               <Box>
                 <Typography
                   variant="subtitle2"
@@ -337,7 +315,7 @@ export default function Home() {
 
               <Divider />
 
-              {/* Question Information */}
+              // Question Information //
               {question ? (
                 <Box>
                   <Typography
@@ -421,9 +399,9 @@ export default function Home() {
             </Alert>
           </DialogContent>
         </Dialog>
-      )}
+      )} */}
 
-      {selectedTopics.length === 0 && !isFinding && !match && (
+      {localSelectedTopics.length === 0 && !isFinding && !match && (
         <Alert severity="warning" sx={{ mt: 2 }}>
           No topic selected — you may be matched with any category.
         </Alert>
@@ -434,6 +412,7 @@ export default function Home() {
           <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
             Match Found! Users: {match.users.join(", ")}
           </Typography>
+          {/* REMOVED QUESTION AS WILL BE HANDLED BY LAYOUT INSTEAD 
           {question ? (
             <Box
               sx={{ mt: 2, p: 2, bgcolor: "background.paper", borderRadius: 1 }}
@@ -465,11 +444,11 @@ export default function Home() {
                 </Typography>
               )}
             </Box>
-          ) : (
+          ) : ( */} 
             <Typography variant="body2" sx={{ mt: 1 }}>
               Loading question details...
             </Typography>
-          )}
+          {/* })} */} 
         </Alert>
       )}
 
