@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react"; 
+import React, { useState, useEffect, useRef } from "react";
 import {
   Box,
   List,
@@ -7,7 +7,7 @@ import {
   ListItemIcon,
   ListItemText,
   Button,
-  LinearProgress, //added for queue progress bar 
+  LinearProgress, //added for queue progress bar
   Typography,
   Chip,
   Dialog, //added for match found
@@ -40,13 +40,14 @@ export default function Layout() {
     declineMatch,
     isAccepting,
     resetMatch, //for clearing declined state
-    currentUserId, //to use in acceptance msg 
+    currentUserId, //to use in acceptance msg
+    cancelSearch, //for cancel button in global searching bar
   } = useMatchmakingContext();
 
   const peerId =
-  match?.users.find((id) => id !== currentUserId) ??
-  match?.users[0] ??
-  "Another user";
+    match?.users.find((id) => id !== currentUserId) ??
+    match?.users[0] ??
+    "Another user";
 
   const declinedByMe = match?.decliningUserId === currentUserId;
 
@@ -57,7 +58,10 @@ export default function Layout() {
     { path: "/profile", label: "Profile", icon: <TbUser /> },
   ];
 
-  const pendingDeadlineRef = useRef<number | null>(null); //store remaining time left on timer
+  const pendingDeadlineRef = useRef<{
+    matchId: string;
+    deadline: number;
+  } | null>(null); //store match info and deadline
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Add admin dashboard for admin users
@@ -108,38 +112,44 @@ export default function Layout() {
 
   useEffect(() => {
     if (match?.status !== "pending") {
-      pendingDeadlineRef.current = null; 
+      pendingDeadlineRef.current = null;
       setMatchTimeLeft(15); //reset timer to default 15s to give users to accept match
-      if(timerRef.current) {
+      if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      return; 
+      return;
     }
 
-    if (!pendingDeadlineRef.current || pendingDeadlineRef.current.matchId !== match.id){
-      pendingDeadlineRef.current = { matchId: match.id, deadline: Date.now() + 15000};
+    if (
+      !pendingDeadlineRef.current ||
+      pendingDeadlineRef.current.matchId !== match.id
+    ) {
+      pendingDeadlineRef.current = {
+        matchId: match.id,
+        deadline: Date.now() + 15000,
+      };
     }
 
     const deadline = pendingDeadlineRef.current.deadline;
 
-    if(timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-        const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
-        setMatchTimeLeft(remaining); 
-        if (remaining === 0){
-          clearInterval(timerRef.current!);
-          timerRef.current = null; 
-          declineMatch(); //decline match since time to accept has ended
-        }
-      }, 1000);
+      const remaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setMatchTimeLeft(remaining);
+      if (remaining === 0) {
+        clearInterval(timerRef.current!);
+        timerRef.current = null;
+        declineMatch(); //decline match since time to accept has ended
+      }
+    }, 1000);
 
-      return () => {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-      };
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [match?.id, match?.status, declineMatch]); // declineMatch is a stable context function
 
   return (
@@ -175,11 +185,20 @@ export default function Layout() {
 
         {isFinding && (
           <Box sx={{ px: 2, pb: 1 }}>
-            <Stack spacing={0.5}>
+            <Stack spacing={1}>
               <Typography variant="caption" color="text.secondary">
                 Searching… {timeProgress}s
               </Typography>
               <LinearProgress />
+              <Button
+                fullWidth
+                variant="outlined"
+                color="error"
+                size="small"
+                onClick={cancelSearch}
+              >
+                Cancel Search
+              </Button>
             </Stack>
           </Box>
         )}
@@ -201,11 +220,17 @@ export default function Layout() {
         <Outlet />
       </Box>
 
-    {/* added from Home.tsx to be handled now globally instead */}
-    {match && match.status === "pending" && (
+      {/* added from Home.tsx to be handled now globally instead */}
+      {match && match.status === "pending" && (
         <Dialog open maxWidth="sm" fullWidth>
           <DialogTitle>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", }} >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
               <span>🎉 Match Found!</span>
               <Chip
                 label={`${matchTimeLeft}s`}
@@ -217,22 +242,47 @@ export default function Layout() {
           <DialogContent>
             <Stack spacing={2} sx={{ mt: 1 }}>
               {/* Acceptance Status */}
-              <Alert severity="info" sx={{ display: "flex", alignItems: "center", "& .MuiAlert-message": { width: "100%" }, }} >
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", }} >
+              <Alert
+                severity="info"
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  "& .MuiAlert-message": { width: "100%" },
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    width: "100%",
+                  }}
+                >
                   <Typography variant="body2">Acceptance Status</Typography>
-                  <Chip label={`${match.acceptedCount || 0}/2 accepted`} color={match.acceptedCount === 1 ? "warning" : "default"} size="small" />
+                  <Chip
+                    label={`${match.acceptedCount || 0}/2 accepted`}
+                    color={match.acceptedCount === 1 ? "warning" : "default"}
+                    size="small"
+                  />
                 </Box>
               </Alert>
 
               {/* Peer Information */}
               <Box>
-                <Typography variant="subtitle2" color="text.secondary" gutterBottom>Matched with:</Typography>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
+                  Matched with:
+                </Typography>
                 <Typography variant="h6" sx={{ fontWeight: "bold" }}>
                   {/* {match.users.find((id) => id !== (user?.userId || "user123")) || "Another user"} */}
                   {peerId}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  User ID: {peerId} {/* {match.users.find((id) => id !== (user?.userId || "user123"))}  */} 
+                  GitHub User ID: {peerId}{" "}
+                  {/* {match.users.find((id) => id !== (user?.userId || "user123"))}  */}
                 </Typography>
               </Box>
 
@@ -241,12 +291,30 @@ export default function Layout() {
               {/* Question Information */}
               {question ? (
                 <Box>
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>Question:</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>{question.title}</Typography>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    Question:
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                    {question.title}
+                  </Typography>
                   <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                    <Chip label={question.difficulty} size="small" color={question.difficulty === "easy" ? "success" : question.difficulty === "medium" ? "warning" : "error"} />
+                    <Chip
+                      label={question.difficulty}
+                      size="small"
+                      color={
+                        question.difficulty === "easy"
+                          ? "success"
+                          : question.difficulty === "medium"
+                          ? "warning"
+                          : "error"
+                      }
+                    />
                     {/* ⚠️ NOTE: Language is hardcoded as we don't have that state here. */}
-                    <Chip label={"Language"} size="small" variant="outlined" /> 
+                    <Chip label={"Language"} size="small" variant="outlined" />
                   </Stack>
                   <Typography variant="body2" color="text.secondary">
                     <strong>Topics:</strong> {question.topics.join(", ")}
@@ -254,17 +322,25 @@ export default function Layout() {
                 </Box>
               ) : (
                 <Box>
-                  <Typography variant="body2" color="text.secondary">Loading question details...</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Loading question details...
+                  </Typography>
                 </Box>
               )}
               <Divider />
-              <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ fontStyle: "italic" }}
+              >
                 Both users must accept to start the collaboration session.
               </Typography>
             </Stack>
           </DialogContent>
           <DialogActions>
-            <Button onClick={declineMatch} variant="outlined" color="error">Decline</Button>
+            <Button onClick={declineMatch} variant="outlined" color="error">
+              Decline
+            </Button>
             <Button
               onClick={acceptMatch}
               variant="contained"
@@ -280,12 +356,10 @@ export default function Layout() {
       {match && match.status === "declined" && (
         <Dialog open maxWidth="sm" fullWidth>
           <DialogTitle>
-            {declinedByMe 
-              ? "Match Declined"
-              : "Match Ended"}
+            {declinedByMe ? "Match Declined" : "Match Ended"}
           </DialogTitle>
           <DialogContent>
-            <Alert severity={declinedByMe ? "info" : "warning"} >
+            <Alert severity={declinedByMe ? "info" : "warning"}>
               <Typography variant="body1">
                 {declinedByMe
                   ? "You declined the match. Click close to search again."
