@@ -63,48 +63,31 @@ export const useMatchmaking = (
           const decliningUserId = msg.match.decliningUserId;
           const wasDeclinedByMe = decliningUserId === userId;
           const declinedMatchId = msg.match.id;
-          const reason = msg.reason;
 
           setMatch(msg.match);
 
-          // Handle timeout - both users removed from queue
-          if (reason === "timeout") {
-            setError("Match timed out. Click 'Find Match' to search again.");
+          if (msg.reason === "timeout") {
             stopSearching();
-            setTimeout(() => {
-              setMatch(null);
-              setError(null);
-            }, 3000);
-            setIsAccepting(false);
-            return;
-          }
-
-          // Handle manual decline
-          if (wasDeclinedByMe) {
-            // I declined, clear after 3 seconds
+            setError("Match timed out."); 
+          } else if (wasDeclinedByMe) {
+            //show error and allow user to decide on rejoining queue 
             setError("You declined the match.");
-            setTimeout(() => {
-              // Only clear if we're still showing the same declined match
-              setMatch((currentMatch) => {
-                if (
-                  currentMatch?.id === declinedMatchId &&
-                  currentMatch.status === "declined"
-                ) {
-                  setError(null);
-                  setIsFinding(false);
-                  return null;
-                }
-                return currentMatch; // Don't clear if a new match has appeared
-              });
-            }, 3000);
           } else {
-            // Other user declined, show message and prepare for re-matching
-            setError("Match was declined by peer. Searching again...");
+            setError("Match was declined by peer. Searching again..."); // Only set error state
 
-            // Set finding state immediately to show we're searching
             setIsFinding(true);
             setTimeProgress(0);
 
+            //using try-catch block in case joining queue is failed and preventing UI to stall 
+            try {
+              await joinQueue({ id: userId, difficulty, language, topics });
+            } catch (err) {
+              console.error("Failed to rejoin queue after decline:", err); //to debug when requeuing failed 
+              setError("Failed to rejoin queue. Please hit Find Match again."); //to notify user 
+              stopSearching(); // stop the timer since we’re not actually queued
+              return;
+            }
+            
             // Start the progress timer for the re-search
             if (interval.current) {
               clearInterval(interval.current);
@@ -197,8 +180,8 @@ export const useMatchmaking = (
     if (!match) return;
     try {
       await sendDecline(match.id);
-      setMatch(null);
-      stopSearching();
+      //setMatch(null);
+      //stopSearching();
     } catch (e) {
       setError("Failed to decline match");
     }
