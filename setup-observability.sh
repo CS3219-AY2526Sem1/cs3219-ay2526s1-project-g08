@@ -56,11 +56,7 @@ cat > /tmp/peerprep-dashboard.json << 'EOF'
             "type": "metric",
             "properties": {
                 "metrics": [
-                    [ "AWS/ECS", "CPUUtilization", { "stat": "Average", "label": "User Service CPU" }, { "service": "user-service", "cluster": "peerprep-cluster" } ],
-                    [ "...", { "service": "question-service", "cluster": "peerprep-cluster", "label": "Question Service CPU" } ],
-                    [ "...", { "service": "collaboration-service", "cluster": "peerprep-cluster", "label": "Collaboration Service CPU" } ],
-                    [ "...", { "service": "matching-service", "cluster": "peerprep-cluster", "label": "Matching Service CPU" } ],
-                    [ "...", { "service": "web-server", "cluster": "peerprep-cluster", "label": "Web Server CPU" } ]
+                    [ "AWS/ECS", "CPUUtilization", { "stat": "Average" } ]
                 ],
                 "view": "timeSeries",
                 "stacked": false,
@@ -79,11 +75,7 @@ cat > /tmp/peerprep-dashboard.json << 'EOF'
             "type": "metric",
             "properties": {
                 "metrics": [
-                    [ "AWS/ECS", "MemoryUtilization", { "stat": "Average", "label": "User Service Memory" }, { "service": "user-service", "cluster": "peerprep-cluster" } ],
-                    [ "...", { "service": "question-service", "cluster": "peerprep-cluster", "label": "Question Service Memory" } ],
-                    [ "...", { "service": "collaboration-service", "cluster": "peerprep-cluster", "label": "Collaboration Service Memory" } ],
-                    [ "...", { "service": "matching-service", "cluster": "peerprep-cluster", "label": "Matching Service Memory" } ],
-                    [ "...", { "service": "web-server", "cluster": "peerprep-cluster", "label": "Web Server Memory" } ]
+                    [ "AWS/ECS", "MemoryUtilization", { "stat": "Average" } ]
                 ],
                 "view": "timeSeries",
                 "stacked": false,
@@ -104,9 +96,9 @@ cat > /tmp/peerprep-dashboard.json << 'EOF'
                 "metrics": [
                     [ "AWS/ApplicationELB", "RequestCount", { "stat": "Sum" } ],
                     [ ".", "TargetResponseTime", { "stat": "Average" } ],
-                    [ ".", "HTTPCode_Target_2XX_Count", { "stat": "Sum", "label": "2xx Responses" } ],
-                    [ ".", "HTTPCode_Target_4XX_Count", { "stat": "Sum", "label": "4xx Errors" } ],
-                    [ ".", "HTTPCode_Target_5XX_Count", { "stat": "Sum", "label": "5xx Errors" } ]
+                    [ ".", "HTTPCode_Target_2XX_Count", { "stat": "Sum" } ],
+                    [ ".", "HTTPCode_Target_4XX_Count", { "stat": "Sum" } ],
+                    [ ".", "HTTPCode_Target_5XX_Count", { "stat": "Sum" } ]
                 ],
                 "view": "timeSeries",
                 "stacked": false,
@@ -119,13 +111,13 @@ cat > /tmp/peerprep-dashboard.json << 'EOF'
             "type": "metric",
             "properties": {
                 "metrics": [
-                    [ "AWS/ECS", "HealthyHostCount", { "stat": "Average", "label": "Healthy Targets" }, { "service": "user-service" } ],
-                    [ ".", "UnhealthyHostCount", { "stat": "Average", "label": "Unhealthy Targets" }, { "service": "user-service" } ]
+                    [ "AWS/ECS", "DesiredTaskCount" ],
+                    [ ".", "RunningTaskCount" ]
                 ],
                 "view": "timeSeries",
                 "stacked": false,
                 "region": "ap-southeast-1",
-                "title": "Target Health Status",
+                "title": "ECS Task Counts",
                 "period": 60
             }
         },
@@ -142,15 +134,11 @@ cat > /tmp/peerprep-dashboard.json << 'EOF'
             "type": "metric",
             "properties": {
                 "metrics": [
-                    [ "AWS/ECS", "RunningTaskCount", { "service": "user-service", "cluster": "peerprep-cluster" } ],
-                    [ "...", { "service": "question-service", "cluster": "peerprep-cluster" } ],
-                    [ "...", { "service": "collaboration-service", "cluster": "peerprep-cluster" } ],
-                    [ "...", { "service": "matching-service", "cluster": "peerprep-cluster" } ],
-                    [ "...", { "service": "web-server", "cluster": "peerprep-cluster" } ]
+                    [ "AWS/ECS", "RunningTaskCount" ]
                 ],
                 "view": "singleValue",
                 "region": "ap-southeast-1",
-                "title": "Running Task Count",
+                "title": "Running Tasks",
                 "period": 300
             }
         }
