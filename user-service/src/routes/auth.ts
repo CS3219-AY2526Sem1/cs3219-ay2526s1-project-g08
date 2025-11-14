@@ -79,7 +79,10 @@ router.get("/callback", async (req, res) => {
       { userId: githubUser.login },
       {
         $set: { name: githubUser.name || githubUser.login },
-        $setOnInsert: { role: "user" }, // Default role for new users
+        $setOnInsert: { 
+          role: "user",  // Default role for new users
+          inSession: false  // Default session status for new users
+        },
       },
       { upsert: true }
     );

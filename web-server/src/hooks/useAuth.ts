@@ -9,6 +9,7 @@ interface UserProfile {
   userId: string;
   name: string;
   role?: "user" | "admin";
+  inSession?: boolean;
 }
 
 export function useAuth() {
@@ -115,6 +116,36 @@ export function useAuth() {
     return null;
   }, [token]);
 
+  // Function to check if user is currently in a session
+  const checkInSession = useCallback(async (): Promise<boolean> => {
+    if (!user) {
+      console.log("checkInSession: No user logged in");
+      return false;
+    }
+
+    try {
+      console.log("checkInSession: Fetching profile from", config.auth.profile);
+      const response = await fetch(config.auth.profile, {
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log("checkInSession: Received user data:", userData);
+        setProfile(userData);
+        const inSessionStatus = userData.inSession || false;
+        console.log("checkInSession: inSession status =", inSessionStatus);
+        return inSessionStatus;
+      } else {
+        console.log("checkInSession: Profile fetch failed with status", response.status);
+      }
+    } catch (err) {
+      console.error("Error checking session status:", err);
+    }
+
+    return false;
+  }, [user]);
+
   // User is logged in if we have user data in localStorage
   const isLoggedIn = !!user;
   const isAdmin = profile?.role === "admin";
@@ -129,5 +160,6 @@ export function useAuth() {
     isLoading,
     token,
     getToken,
+    checkInSession,
   };
 }

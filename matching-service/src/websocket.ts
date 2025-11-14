@@ -174,25 +174,23 @@ async function createCollaborationSession(match: any): Promise<string | null> {
       return null;
     }
 
-    const collaborationServiceUrl = process.env.COLLABORATION_SERVICE_URL || 
+    const collaborationServiceUrl =
+      process.env.COLLABORATION_SERVICE_URL ||
       "http://collaboration-service:3004/collaboration";
-    
-    const response = await fetch(
-      `${collaborationServiceUrl}/sessions`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          participants: match.users,
-          questionId: match.questionId,
-          difficulty: match.difficulty,
-          topics: match.matchedTopics,
-          language: match.language,
-        }),
-      }
-    );
+
+    const response = await fetch(`${collaborationServiceUrl}/sessions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        participants: match.users,
+        questionId: match.questionId,
+        difficulty: match.difficulty,
+        topics: match.matchedTopics,
+        language: match.language,
+      }),
+    });
 
     if (response.ok) {
       const data = await response.json();
@@ -325,9 +323,10 @@ export async function deleteCollaborationSession(
   sessionId: string
 ): Promise<void> {
   try {
-    const collaborationServiceUrl = process.env.COLLABORATION_SERVICE_URL || 
+    const collaborationServiceUrl =
+      process.env.COLLABORATION_SERVICE_URL ||
       "http://collaboration-service:3004/collaboration";
-    
+
     const response = await fetch(
       `${collaborationServiceUrl}/internal/sessions/${sessionId}`,
       {

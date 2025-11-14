@@ -29,7 +29,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useMatchmakingContext } from "../hooks/MatchmakingGlobal";
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, checkInSession } = useAuth();
 
   const [localDifficulty, setLocalDifficulty] = useState("easy");
   const [localLanguage, setLocalLanguage] = useState("python");
@@ -107,6 +107,19 @@ export default function Home() {
 
   //to be called by MatchMaking global
   const handleFindMatch = async () => {
+    // Check if user is currently in a session before allowing them to find a match
+    console.log("Checking if user is in session before finding match...");
+    const inSession = await checkInSession();
+    console.log("User inSession status:", inSession);
+    
+    if (inSession) {
+      // Show an error message to the user
+      console.log("User is in session - blocking queue entry");
+      alert("You are currently in an active session. Please leave your current session before searching for a new match.");
+      return;
+    }
+    
+    console.log("User is not in session - allowing queue entry");
     await findMatch();
   };
 

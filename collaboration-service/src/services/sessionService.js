@@ -6,11 +6,12 @@ class SessionService {
   // Create new collaboration session
   async createSession({ participants, questionId, difficulty, topics, language }) {
     try {
-      // Check if any participant already has an active session
+      // Remove the flawed check for active sessions
+      // Instead, verify users are not currently in a session using user service
       for (const userId of participants) {
-        const existingSession = await Session.findActiveByUser(userId);
-        if (existingSession) {
-          throw new Error(`User ${userId} already has an active session`);
+        const inSession = await this.checkUserInSession(userId);
+        if (inSession) {
+          throw new Error(`User ${userId} is currently in an active session`);
         }
       }
 
@@ -24,6 +25,10 @@ class SessionService {
       });
 
       await session.save(); // Save document to DB
+      
+      // Update all participants' session status to true
+      await this.updateParticipantsSessionStatus(participants, true);
+      
       logger.info(`Session created: ${session.sessionId}`);
       
       return session;
@@ -79,6 +84,9 @@ class SessionService {
       session.removeUser(userId);
       await session.save();
       
+      // Update user's session status to false when they leave
+      await this.updateUserSessionStatus(userId, false);
+      
       logger.info(`User ${userId} left session ${sessionId}`);
       return session;
 
@@ -98,6 +106,9 @@ class SessionService {
 
       session.terminate(reason);
       await session.save();
+
+      // Update all participants' session status to false
+      await this.updateParticipantsSessionStatus(session.participants, false);
 
       logger.info(`Session terminated: ${sessionId}, reason: ${reason}`);
       return true;
@@ -179,6 +190,56 @@ class SessionService {
     } catch (error) {
       logger.error('Get user session history error:', error);
       throw error;
+    }
+  }
+
+  // Helper method to check if a user is currently in a session
+  async checkUserInSession(userId) {
+    try {
+      const userServiceUrl = process.env.USER_SERVICE_URL || 'http://user-service:3001/user';
+      const response = await fetch(`${userServiceUrl}/internal/session-status/${userId}`);
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data.inSession;
+      }
+      
+      logger.warn(`Failed to check session status for user ${userId}`);
+      return false; // Default to false if check fails
+    } catch (error) {
+      logger.error(`Error checking user session status: ${error}`);
+      return false; // Default to false if check fails
+    }
+  }
+
+  // Helper method to update a single user's session status
+  async updateUserSessionStatus(userId, inSession) {
+    try {
+      const userServiceUrl = process.env.USER_SERVICE_URL || 'http://user-service:3001/user';
+      const response = await fetch(`${userServiceUrl}/internal/session-status/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ inSession }),
+      });
+
+      if (!response.ok) {
+        logger.warn(`Failed to update session status for user ${userId}`);
+      }
+    } catch (error) {
+      logger.error(`Error updating user session status: ${error}`);
+    }
+  }
+
+  // Helper method to update multiple participants' session status
+  async updateParticipantsSessionStatus(participants, inSession) {
+    try {
+      await Promise.all(
+        participants.map(userId => this.updateUserSessionStatus(userId, inSession))
+      );
+    } catch (error) {
+      logger.error(`Error updating participants session status: ${error}`);
     }
   }
 }
