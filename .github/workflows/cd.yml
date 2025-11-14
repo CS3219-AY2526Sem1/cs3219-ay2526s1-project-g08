@@ -133,8 +133,44 @@ jobs:
             --force-new-deployment \
             --region ${{ env.AWS_REGION }}
 
-      # Note: web-server is deployed to S3 + CloudFront (not ECS)
-      # See CI pipeline for frontend deployment on master branch
+      # Deploy web-server to S3 + CloudFront
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          cache-dependency-path: web-server/package-lock.json
+
+      - name: Build web-server
+        working-directory: ./web-server
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to S3 - Static Assets
+        run: |
+          aws s3 sync web-server/dist s3://peerprep-frontend-prod \
+            --exclude "*.html" \
+            --cache-control "public,max-age=31536000,immutable" \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3 - HTML Files
+        run: |
+          aws s3 sync web-server/dist s3://peerprep-frontend-prod \
+            --exclude "*" \
+            --include "*.html" \
+            --cache-control "public,max-age=0,no-cache,no-store,must-revalidate" \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Invalidate CloudFront Cache
+        run: |
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id E133O2GNMC57KP \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+          echo "CloudFront invalidation created: $INVALIDATION_ID"
+          echo "Cache invalidation will take 2-3 minutes to complete"
 
       # Wait for all services to stabilize
       - name: Wait for services to stabilize
@@ -149,7 +185,7 @@ jobs:
       - name: Deployment summary
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "  ✅ Backend Services Deployment Complete!"
+          echo "  ✅ Deployment Complete!"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
           echo "Backend Services (ECS):"
@@ -160,4 +196,8 @@ jobs:
             --query 'services[*].[serviceName,desiredCount,runningCount,deployments[0].status]' \
             --output table
           echo ""
-          echo "Frontend: Deployed to S3 + CloudFront (see CI workflow)"
+          echo "Frontend (S3 + CloudFront):"
+          echo "  S3 Bucket: peerprep-frontend-prod"
+          echo "  CloudFront: https://dtdp1nnlnq3yh.cloudfront.net"
+          echo "  Status: Deployed ✅"
+          echo "  Note: Cache invalidation takes 2-3 minutes to propagate"
