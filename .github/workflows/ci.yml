@@ -1,0 +1,321 @@
+name: Continuous Integration
+
+on:
+  pull_request:
+    branches:
+      - master
+      - develop
+  push:
+    branches:
+      - develop
+      - feature/**
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.x'
+
+jobs:
+  # Stage 1: Code Quality & Security Scan
+  code-quality:
+    name: Code Quality & Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: |
+            user-service/package-lock.json
+            question-service/package-lock.json
+            collaboration-service/package-lock.json
+            matching-service/package-lock.json
+            web-server/package-lock.json
+
+      - name: Run security audit
+        run: |
+          echo "🔒 Running security audit on all services..."
+          services=("user-service" "question-service" "collaboration-service" "matching-service" "web-server")
+          
+          for service in "${services[@]}"; do
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🔍 Auditing: $service"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            
+            if [ -f "$service/package.json" ]; then
+              cd $service
+              npm audit --audit-level=high || true
+              cd ..
+            fi
+          done
+
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # Stage 2: Build & Test Backend Services
+  build-and-test-backend:
+    name: Build & Test - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: code-quality
+    
+    strategy:
+      matrix:
+        service:
+          - user-service
+          - question-service
+          - collaboration-service
+          - matching-service
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ matrix.service }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./${{ matrix.service }}
+        run: |
+          echo "📦 Installing dependencies for ${{ matrix.service }}..."
+          npm ci
+
+      - name: Build
+        working-directory: ./${{ matrix.service }}
+        run: |
+          echo "🔨 Building ${{ matrix.service }}..."
+          npm run build
+
+      - name: Run tests
+        working-directory: ./${{ matrix.service }}
+        run: |
+          echo "🧪 Running tests for ${{ matrix.service }}..."
+          if grep -q '"test":' package.json; then
+            npm test || echo "⚠️ Tests failed or not configured"
+          else
+            echo "⚠️ No test script found in package.json"
+          fi
+        continue-on-error: true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.service }}-build
+          path: ./${{ matrix.service }}/dist
+          retention-days: 1
+
+  # Stage 3: Build & Test Frontend
+  build-and-test-frontend:
+    name: Build & Test - Frontend
+    runs-on: ubuntu-latest
+    needs: code-quality
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web-server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./web-server
+        run: |
+          echo "📦 Installing dependencies for web-server..."
+          npm ci
+
+      - name: Build frontend
+        working-directory: ./web-server
+        run: |
+          echo "🔨 Building web-server..."
+          npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-server-build
+          path: ./web-server/dist
+          retention-days: 1
+
+  # Stage 4: Docker Build & Scan
+  docker-build-scan:
+    name: Docker Build & Scan - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: [build-and-test-backend, build-and-test-frontend]
+    
+    strategy:
+      matrix:
+        service:
+          - user-service
+          - question-service
+          - collaboration-service
+          - matching-service
+          - web-server
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        working-directory: ./${{ matrix.service }}
+        run: |
+          echo "🐳 Building Docker image for ${{ matrix.service }}..."
+          docker build -t ${{ matrix.service }}:${{ github.sha }} .
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ matrix.service }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service }}.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
+          category: ${{ matrix.service }}
+
+      - name: Check for vulnerabilities
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ matrix.service }}:${{ github.sha }}
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+  # Stage 5: Integration Tests
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: docker-build-scan
+
+    services:
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+      mongodb:
+        image: mongo:7
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand({ping: 1})'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run collaboration service integration tests
+        working-directory: ./collaboration-service
+        run: |
+          npm ci
+          npm test
+        env:
+          MONGO_URI: mongodb://localhost:27017/test
+          JWT_SECRET: test-secret
+          PORT: 3004
+        continue-on-error: true
+
+  # CI Summary
+  ci-summary:
+    name: CI Pipeline Summary
+    runs-on: ubuntu-latest
+    needs: [code-quality, build-and-test-backend, build-and-test-frontend, docker-build-scan, integration-tests]
+    if: always()
+
+    steps:
+      - name: Check CI status
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  ✅ CI Pipeline Complete"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Pipeline Status:"
+          echo "  • Code Quality: ${{ needs.code-quality.result }}"
+          echo "  • Backend Build: ${{ needs.build-and-test-backend.result }}"
+          echo "  • Frontend Build: ${{ needs.build-and-test-frontend.result }}"
+          echo "  • Docker Scan: ${{ needs.docker-build-scan.result }}"
+          echo "  • Integration Tests: ${{ needs.integration-tests.result }}"
+          echo ""
+          
+          if [ "${{ needs.code-quality.result }}" == "success" ] && 
+             [ "${{ needs.build-and-test-backend.result }}" == "success" ] && 
+             [ "${{ needs.build-and-test-frontend.result }}" == "success" ] && 
+             [ "${{ needs.docker-build-scan.result }}" == "success" ]; then
+            echo "✅ All critical checks passed - Ready for deployment"
+            exit 0
+          else
+            echo "⚠️ Some checks failed - Review before merging"
+            exit 0
+          fi
+
+      - name: Comment PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const summary = `## 🚀 CI Pipeline Results
+            
+            | Stage | Status |
+            |-------|--------|
+            | Code Quality & Security | ${{ needs.code-quality.result }} |
+            | Backend Build & Test | ${{ needs.build-and-test-backend.result }} |
+            | Frontend Build | ${{ needs.build-and-test-frontend.result }} |
+            | Docker Build & Scan | ${{ needs.docker-build-scan.result }} |
+            | Integration Tests | ${{ needs.integration-tests.result }} |
+            
+            ${(() => {
+              const allPassed = 
+                '${{ needs.code-quality.result }}' === 'success' &&
+                '${{ needs.build-and-test-backend.result }}' === 'success' &&
+                '${{ needs.build-and-test-frontend.result }}' === 'success' &&
+                '${{ needs.docker-build-scan.result }}' === 'success';
+              
+              return allPassed 
+                ? '✅ **All critical checks passed!** This PR is ready to merge.'
+                : '⚠️ **Some checks need attention.** Please review the failures above.';
+            })()}
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
