@@ -37,7 +37,7 @@ class SessionService {
   // Get session by ID
   async getSession(sessionId) {
     try {
-      return await Session.findActiveById(sessionId);
+      return await Session.findById(sessionId);
     } catch (error) {
       logger.error('Get session error:', error);
       throw error;
@@ -47,7 +47,7 @@ class SessionService {
   // User joins session
   async joinSession(sessionId, userId) {
     try {
-      const session = await Session.findActiveById(sessionId);
+      const session = await Session.findById(sessionId);
       if (!session) {
         throw new Error('Session not found or not active');
       }
@@ -71,7 +71,7 @@ class SessionService {
   // User leaves session
   async leaveSession(sessionId, userId) {
     try {
-      const session = await Session.findActiveById(sessionId);
+      const session = await Session.findById(sessionId);
       if (!session) {
         return null; // Session already doesn't exist
       }
@@ -91,7 +91,7 @@ class SessionService {
   // Terminate session
   async terminateSession(sessionId, reason = 'manual') {
     try {
-      const session = await Session.findActiveById(sessionId);
+      const session = await Session.findById(sessionId);
       if (!session) {
         return false;
       }
@@ -149,37 +149,6 @@ class SessionService {
     }
   }
 
-  // Get all terminated sessions for a user (used for history)
-  async getUserHistory(userId) {
-    try {
-      return await Session.find({
-        participants: userId,
-        status: 'terminated'
-      })
-        .select('sessionId questionId difficulty topics language completedAt terminationReason')
-        .sort({ updatedAt: -1 })
-        .lean();
-    } catch (error) {
-      logger.error('Get user history error:', error);
-      return [];
-    }
-  }
-
-  // Get one terminated session in detail (for view button)
-  async getSessionHistory(sessionId, userId) {
-    try {
-      const session = await Session.findOne({
-        sessionId,
-        participants: userId,
-        status: 'terminated'
-      }).lean();
-      return session;
-    } catch (error) {
-      logger.error('Get session history error:', error);
-      return null;
-    }
-  }
-
   // Get user's session history
   async getUserSessionHistory(userId, options = {}) {
     try {
@@ -199,10 +168,10 @@ class SessionService {
       }
 
       const sessions = await Session.find(query)
-        .sort({ createdAt: -1 }) // Most recent first
+        .sort({ updatedAt: -1 }) // Most recent first
         .skip(parseInt(offset))
         .limit(parseInt(limit))
-        .select('sessionId participants questionId difficulty topics language status createdAt endedAt endReason')
+        .select('sessionId participants questionId difficulty topics updatedAt')
         .lean(); // Convert to plain JavaScript objects for better performance
 
       return sessions;
@@ -212,31 +181,6 @@ class SessionService {
       throw error;
     }
   }
-
-  // Get specific session details (for history view)
-  async getSessionDetails(sessionId, userId) {
-    try {
-      const session = await Session.findOne({ sessionId })
-        .select('sessionId participants questionId difficulty topics language status createdAt endedAt endReason')
-        .lean();
-
-      if (!session) {
-        return null;
-      }
-
-      // Verify user is a participant
-      if (!session.participants.includes(userId)) {
-        throw new Error('Not authorized to view this session');
-      }
-
-      return session;
-
-    } catch (error) {
-      logger.error('Get session details error:', error);
-      throw error;
-    }
-  }
-
 }
 
 

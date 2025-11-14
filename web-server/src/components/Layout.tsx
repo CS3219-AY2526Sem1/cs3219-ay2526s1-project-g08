@@ -22,7 +22,7 @@ export default function Layout() {
   const menuItems = [
     { path: "/home", label: "Home", icon: <TbHome /> },
     { path: "/profile", label: "Profile", icon: <TbUser /> },
-    { path: "/history", label: "Question History", icon: <TbHistory /> },
+    { path: "/history", label: "Collaboration History", icon: <TbHistory /> },
   ];
 
   // Add admin dashboard for admin users
