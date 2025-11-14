@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Box,
   List,
@@ -20,7 +20,13 @@ import {
   Snackbar, //added for auto-dismissing notification
 } from "@mui/material";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { TbHome, TbUser, TbLogout, TbShieldCheck, TbHistory } from "react-icons/tb";
+import {
+  TbHome,
+  TbUser,
+  TbLogout,
+  TbShieldCheck,
+  TbHistory,
+} from "react-icons/tb";
 import { useAuth } from "../hooks/useAuth";
 import { stopTokenRefreshTimer } from "../utils/tokenRefresh";
 import { useMatchmakingContext } from "../hooks/MatchmakingGlobal";
@@ -57,6 +63,14 @@ export default function Layout() {
   const [matchTimeLeft, setMatchTimeLeft] = useState(15);
   const [showDeclineNotification, setShowDeclineNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
+
+  // Debug log for notification state
+  useEffect(() => {
+    console.log("🔔 Snackbar state changed:", {
+      showDeclineNotification,
+      notificationMessage,
+    });
+  }, [showDeclineNotification, notificationMessage]);
 
   const menuItems = [
     { path: "/home", label: "Home", icon: <TbHome /> },
@@ -118,38 +132,30 @@ export default function Layout() {
 
   // Show notification when peer declines or timeout occurs
   useEffect(() => {
-    if (match?.status === "declined" && !declinedByMe) {
-      // Check if it's a timeout or peer decline
-      if (error?.includes("didn't respond")) {
-        // Peer didn't respond, user accepted - show notification
-        setNotificationMessage(
-          "The other user didn't respond. Rejoining the queue…"
-        );
-        setShowDeclineNotification(true);
+    console.log("📢 Notification useEffect triggered:", {
+      matchStatus: match?.status,
+      declinedByMe,
+      error,
+      showDeclineNotification,
+    });
 
-        // Auto-hide after 3 seconds
-        const timer = setTimeout(() => {
-          setShowDeclineNotification(false);
-        }, 3000);
-        return () => clearTimeout(timer);
-      } else if (error?.includes("didn't accept in time")) {
-        // User didn't accept in time - don't show notification, modal will handle it
-        setShowDeclineNotification(false);
-      } else {
-        // Peer declined - show notification
-        setNotificationMessage(
-          "Your peer declined the match. Rejoining the queue…"
-        );
-        setShowDeclineNotification(true);
-
-        // Auto-hide after 3 seconds
-        const timer = setTimeout(() => {
-          setShowDeclineNotification(false);
-        }, 3000);
-        return () => clearTimeout(timer);
-      }
+    // Check for peer-related errors that should show notifications
+    if (error?.includes("didn't respond")) {
+      console.log("→ Case: Peer didn't respond");
+      // Peer didn't respond, user accepted - show notification
+      setNotificationMessage(
+        "The other user didn't respond. Rejoining the queue…"
+      );
+      setShowDeclineNotification(true);
+    } else if (error?.includes("declined by peer")) {
+      console.log("→ Case: Peer declined");
+      // Peer declined - show notification
+      setNotificationMessage(
+        "Your peer declined the match. Rejoining the queue…"
+      );
+      setShowDeclineNotification(true);
     }
-  }, [match?.status, match?.id, declinedByMe, error]);
+  }, [error]);
 
   useEffect(() => {
     if (match?.status !== "pending") {
@@ -222,7 +228,12 @@ export default function Layout() {
                 onClick={() => navigate(item.path)}
               >
                 <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.label} />
+                <ListItemText
+                  primary={item.label}
+                  primaryTypographyProps={{
+                    sx: { fontSize: { xs: "0.9375rem", md: "1rem" } }, // 15-16px
+                  }}
+                />
               </ListItemButton>
             </ListItem>
           ))}
@@ -231,7 +242,11 @@ export default function Layout() {
         {isFinding && (
           <Box sx={{ px: 2, pb: 1 }}>
             <Stack spacing={1}>
-              <Typography variant="caption" color="text.secondary">
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }} // 14-15px
+              >
                 Searching… {timeProgress}s
               </Typography>
               <LinearProgress />
@@ -241,6 +256,7 @@ export default function Layout() {
                 color="error"
                 size="small"
                 onClick={cancelSearch}
+                sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }} // 14-15px
               >
                 Cancel Search
               </Button>
@@ -254,6 +270,7 @@ export default function Layout() {
             variant="outlined"
             startIcon={<TbLogout />}
             onClick={handleLogout}
+            sx={{ fontSize: { xs: "0.9375rem", md: "1rem" } }} // 15-16px
           >
             Logout
           </Button>
@@ -265,10 +282,22 @@ export default function Layout() {
         <Outlet />
       </Box>
 
-      {/* added from Home.tsx to be handled now globally instead */}
+      {/* Match Found Modal - Redesigned to match homepage */}
       {match && match.status === "pending" && (
-        <Dialog open maxWidth="sm" fullWidth>
-          <DialogTitle>
+        <Dialog
+          open
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              bgcolor: "#181818",
+              border: "1px solid rgba(255, 255, 255, 0.08)",
+              borderRadius: 1.5,
+              backgroundImage: "none",
+            },
+          }}
+        >
+          <DialogTitle sx={{ pb: 2 }}>
             <Box
               sx={{
                 display: "flex",
@@ -276,23 +305,36 @@ export default function Layout() {
                 alignItems: "center",
               }}
             >
-              <span>🎉 Match Found!</span>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: "1.25rem", md: "1.375rem" }, // 20-22px
+                }}
+              >
+                🎉 Match Found!
+              </Typography>
               <Chip
                 label={`${matchTimeLeft}s`}
                 color={matchTimeLeft <= 5 ? "error" : "primary"}
                 size="small"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: "0.875rem", // 14px
+                }}
               />
             </Box>
           </DialogTitle>
-          <DialogContent>
-            <Stack spacing={2} sx={{ mt: 1 }}>
-              {/* Acceptance Status */}
-              <Alert
-                severity="info"
+
+          <DialogContent sx={{ pt: 0 }}>
+            <Stack spacing={2.5}>
+              {/* Acceptance Status Card */}
+              <Box
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  "& .MuiAlert-message": { width: "100%" },
+                  p: 2,
+                  bgcolor: "rgba(255, 255, 255, 0.03)",
+                  border: "1px solid rgba(255, 255, 255, 0.08)",
+                  borderRadius: 1,
                 }}
               >
                 <Box
@@ -300,96 +342,247 @@ export default function Layout() {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    width: "100%",
                   }}
                 >
-                  <Typography variant="body2">Acceptance Status</Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 500,
+                      fontSize: { xs: "0.875rem", md: "0.9375rem" }, // 14-15px
+                    }}
+                  >
+                    Acceptance Status
+                  </Typography>
                   <Chip
                     label={`${match.acceptedCount || 0}/2 accepted`}
-                    color={match.acceptedCount === 1 ? "warning" : "default"}
                     size="small"
+                    sx={{
+                      bgcolor:
+                        match.acceptedCount === 1
+                          ? "rgba(255, 152, 0, 0.15)"
+                          : "rgba(255, 255, 255, 0.08)",
+                      color:
+                        match.acceptedCount === 1
+                          ? "warning.main"
+                          : "text.secondary",
+                      fontWeight: 500,
+                      fontSize: "0.875rem", // 14px
+                      border:
+                        match.acceptedCount === 1
+                          ? "1px solid rgba(255, 152, 0, 0.3)"
+                          : "none",
+                    }}
                   />
                 </Box>
-              </Alert>
+              </Box>
+
+              <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.08)" }} />
 
               {/* Peer Information */}
               <Box>
                 <Typography
-                  variant="subtitle2"
+                  variant="body2"
                   color="text.secondary"
                   gutterBottom
+                  sx={{
+                    fontWeight: 500,
+                    fontSize: { xs: "0.875rem", md: "0.9375rem" }, // 14-15px
+                    mb: 1,
+                  }}
                 >
-                  Matched with:
+                  Matched with
                 </Typography>
-                <Typography variant="h6" sx={{ fontWeight: "bold" }}>
-                  {/* {match.users.find((id) => id !== (user?.userId || "user123")) || "Another user"} */}
+                <Typography
+                  variant="h6"
+                  sx={{
+                    fontWeight: 600,
+                    fontSize: { xs: "1rem", md: "1.125rem" }, // 16-18px
+                    mb: 0.5,
+                  }}
+                >
                   {peerId}
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  GitHub User ID: {peerId}{" "}
-                  {/* {match.users.find((id) => id !== (user?.userId || "user123"))}  */}
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontSize: "0.875rem" }} // 14px
+                >
+                  GitHub: {peerId}
                 </Typography>
               </Box>
 
-              <Divider />
+              <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.08)" }} />
 
               {/* Question Information */}
               {question ? (
                 <Box>
                   <Typography
-                    variant="subtitle2"
+                    variant="body2"
                     color="text.secondary"
                     gutterBottom
+                    sx={{
+                      fontWeight: 500,
+                      fontSize: { xs: "0.875rem", md: "0.9375rem" }, // 14-15px
+                      mb: 1,
+                    }}
                   >
-                    Question:
+                    Question
                   </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 600,
+                      mb: 1.5,
+                      fontSize: { xs: "1rem", md: "1.125rem" }, // 16-18px
+                    }}
+                  >
                     {question.title}
                   </Typography>
-                  <Stack direction="row" spacing={1} sx={{ mb: 1 }}>
-                    <Chip
-                      label={question.difficulty}
-                      size="small"
-                      color={
-                        question.difficulty === "easy"
-                          ? "success"
-                          : question.difficulty === "medium"
-                          ? "warning"
-                          : "error"
-                      }
-                    />
-                    {/* ⚠️ NOTE: Language is hardcoded as we don't have that state here. */}
-                    <Chip label={"Language"} size="small" variant="outlined" />
+                  <Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
+                    <Box
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 10,
+                        bgcolor:
+                          question.difficulty === "easy"
+                            ? "rgba(76, 175, 80, 0.15)"
+                            : question.difficulty === "medium"
+                            ? "rgba(255, 152, 0, 0.15)"
+                            : "rgba(244, 67, 54, 0.15)",
+                        border: "1px solid",
+                        borderColor:
+                          question.difficulty === "easy"
+                            ? "rgba(76, 175, 80, 0.3)"
+                            : question.difficulty === "medium"
+                            ? "rgba(255, 152, 0, 0.3)"
+                            : "rgba(244, 67, 54, 0.3)",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          bgcolor:
+                            question.difficulty === "easy"
+                              ? "#4caf50"
+                              : question.difficulty === "medium"
+                              ? "#ff9800"
+                              : "#f44336",
+                        }}
+                      />
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: "0.875rem", // 14px
+                          color:
+                            question.difficulty === "easy"
+                              ? "#4caf50"
+                              : question.difficulty === "medium"
+                              ? "#ff9800"
+                              : "#f44336",
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {question.difficulty}
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 0.5,
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 10,
+                        bgcolor: "rgba(255, 255, 255, 0.05)",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 500,
+                          fontSize: "0.875rem", // 14px
+                          color: "text.secondary",
+                        }}
+                      >
+                        Language
+                      </Typography>
+                    </Box>
                   </Stack>
-                  <Typography variant="body2" color="text.secondary">
-                    <strong>Topics:</strong> {question.topics.join(", ")}
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }} // 14-15px
+                  >
+                    <Box component="span" sx={{ fontWeight: 500 }}>
+                      Topics:
+                    </Box>{" "}
+                    {question.topics.join(", ")}
                   </Typography>
                 </Box>
               ) : (
                 <Box>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ fontSize: { xs: "0.875rem", md: "0.9375rem" } }} // 14-15px
+                  >
                     Loading question details...
                   </Typography>
                 </Box>
               )}
-              <Divider />
+
+              <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.08)" }} />
+
               <Typography
                 variant="body2"
                 color="text.secondary"
-                sx={{ fontStyle: "italic" }}
+                sx={{
+                  fontStyle: "italic",
+                  fontSize: { xs: "0.875rem", md: "0.9375rem" }, // 14-15px
+                }}
               >
                 Both users must accept to start the collaboration session.
               </Typography>
             </Stack>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={declineMatch} variant="outlined" color="error">
+
+          <DialogActions sx={{ p: 3, pt: 2 }}>
+            <Button
+              onClick={declineMatch}
+              variant="outlined"
+              sx={{
+                borderColor: "rgba(244, 67, 54, 0.5)",
+                color: "#f44336",
+                fontSize: { xs: "1rem", md: "1.0625rem" }, // 16-17px
+                textTransform: "uppercase",
+                fontWeight: 600,
+                px: 3,
+                "&:hover": {
+                  borderColor: "#f44336",
+                  bgcolor: "rgba(244, 67, 54, 0.08)",
+                },
+              }}
+            >
               Decline
             </Button>
             <Button
               onClick={acceptMatch}
               variant="contained"
               disabled={isAccepting || !match || match.status !== "pending"}
+              sx={{
+                fontSize: { xs: "1rem", md: "1.0625rem" }, // 16-17px
+                textTransform: "uppercase",
+                fontWeight: 600,
+                px: 3,
+              }}
             >
               {isAccepting ? "Accepting..." : "Accept"}
             </Button>
@@ -397,36 +590,83 @@ export default function Layout() {
         </Dialog>
       )}
 
-      {/* ADD: Persistent Match Declined Dialog - For user's own decline or timeout */}
+      {/* Match Declined / Timeout Modal - Redesigned */}
       {match &&
         match.status === "declined" &&
         (declinedByMe || error?.includes("didn't accept in time")) && (
-          <Dialog open maxWidth="sm" fullWidth>
-            <DialogTitle>
-              {declinedByMe ? "Match Declined" : "Match Timed Out"}
+          <Dialog
+            open
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+              sx: {
+                bgcolor: "#181818",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: 1.5,
+                backgroundImage: "none",
+              },
+            }}
+          >
+            <DialogTitle sx={{ pb: 2 }}>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: { xs: "1.25rem", md: "1.375rem" }, // 20-22px
+                  color: declinedByMe ? "#f44336" : "#ff9800",
+                }}
+              >
+                {declinedByMe ? "Match Declined" : "Match Timed Out"}
+              </Typography>
             </DialogTitle>
-            <DialogContent>
-              <Alert severity="info">
-                <Typography variant="body1">
+            <DialogContent sx={{ pt: 0 }}>
+              <Box
+                sx={{
+                  p: 2.5,
+                  bgcolor: declinedByMe
+                    ? "rgba(244, 67, 54, 0.08)"
+                    : "rgba(255, 152, 0, 0.08)",
+                  border: "1px solid",
+                  borderColor: declinedByMe
+                    ? "rgba(244, 67, 54, 0.2)"
+                    : "rgba(255, 152, 0, 0.2)",
+                  borderRadius: 1,
+                }}
+              >
+                <Typography
+                  variant="body1"
+                  sx={{
+                    fontSize: { xs: "1rem", md: "1.0625rem" }, // 16-17px
+                    lineHeight: 1.6,
+                  }}
+                >
                   {declinedByMe
                     ? "You declined the match. Click close to search again."
                     : "You didn't accept in time. Click close to search again."}
                 </Typography>
-              </Alert>
+              </Box>
             </DialogContent>
-            <DialogActions>
-              {/* NOTE: Use resetMatch from context to clear state */}
-              <Button onClick={resetMatch} autoFocus>
+            <DialogActions sx={{ p: 3, pt: 2 }}>
+              <Button
+                onClick={resetMatch}
+                variant="contained"
+                autoFocus
+                sx={{
+                  fontSize: { xs: "1rem", md: "1.0625rem" }, // 16-17px
+                  textTransform: "uppercase",
+                  fontWeight: 600,
+                  px: 3,
+                }}
+              >
                 Close
               </Button>
             </DialogActions>
           </Dialog>
         )}
 
-      {/* Auto-dismissing notification for peer decline or timeout */}
+      {/* Notification for peer decline or timeout */}
       <Snackbar
         open={showDeclineNotification}
-        autoHideDuration={3000}
         onClose={() => setShowDeclineNotification(false)}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
