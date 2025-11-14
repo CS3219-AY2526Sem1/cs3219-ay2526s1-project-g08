@@ -133,31 +133,8 @@ jobs:
             --force-new-deployment \
             --region ${{ env.AWS_REGION }}
 
-      # Build and push web-server
-      - name: Build and push web-server
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $ECR_REGISTRY/web-server:$IMAGE_TAG ./web-server
-          docker tag $ECR_REGISTRY/web-server:$IMAGE_TAG $ECR_REGISTRY/web-server:latest
-          docker push $ECR_REGISTRY/web-server:$IMAGE_TAG
-          docker push $ECR_REGISTRY/web-server:latest
-
-      - name: Register web-server task definition
-        run: |
-          aws ecs register-task-definition \
-            --cli-input-json file://.aws/task-definitions/web-server.json \
-            --region ${{ env.AWS_REGION }}
-
-      - name: Deploy web-server
-        run: |
-          aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service web-server \
-            --task-definition web-server \
-            --force-new-deployment \
-            --region ${{ env.AWS_REGION }}
+      # Note: web-server is deployed to S3 + CloudFront (not ECS)
+      # See CI pipeline for frontend deployment on master branch
 
       # Wait for all services to stabilize
       - name: Wait for services to stabilize
@@ -165,19 +142,22 @@ jobs:
           echo "⏳ Waiting for all services to stabilize..."
           aws ecs wait services-stable \
             --cluster ${{ env.ECS_CLUSTER }} \
-            --services user-service question-service collaboration-service matching-service web-server \
+            --services user-service question-service collaboration-service matching-service \
             --region ${{ env.AWS_REGION }}
           echo "✅ All services are stable!"
 
       - name: Deployment summary
         run: |
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "  ✅ Deployment Complete!"
+          echo "  ✅ Backend Services Deployment Complete!"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
+          echo "Backend Services (ECS):"
           aws ecs describe-services \
             --cluster ${{ env.ECS_CLUSTER }} \
-            --services user-service question-service collaboration-service matching-service web-server \
+            --services user-service question-service collaboration-service matching-service \
             --region ${{ env.AWS_REGION }} \
             --query 'services[*].[serviceName,desiredCount,runningCount,deployments[0].status]' \
             --output table
+          echo ""
+          echo "Frontend: Deployed to S3 + CloudFront (see CI workflow)"

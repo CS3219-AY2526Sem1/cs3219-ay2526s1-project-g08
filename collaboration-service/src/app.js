@@ -9,9 +9,17 @@ const httpServer = createServer(app);
 
 // Middleware
 app.use(helmet());
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "https://dtdp1nnlnq3yh.cloudfront.net",
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: allowedOrigins,
     credentials: true, // enable cookies and credentials
   })
 );

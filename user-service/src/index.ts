@@ -17,7 +17,13 @@ app.use(cookieParser());
 // from a different domain than the one the webpage was served from
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = ["http://localhost:3000", "http://localhost:3002"];
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:3002",
+    "http://localhost:5173",
+    "https://dtdp1nnlnq3yh.cloudfront.net",  // CloudFront frontend
+    process.env.FRONTEND_URL  // Environment variable for flexibility
+  ].filter(Boolean);  // Remove undefined values
 
   if (origin && allowedOrigins.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
