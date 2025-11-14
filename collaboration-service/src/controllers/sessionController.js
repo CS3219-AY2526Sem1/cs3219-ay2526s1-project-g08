@@ -88,6 +88,7 @@ router.get('/sessions/:sessionId', authenticateToken, async (req, res) => {
         topics: session.topics,
         language: session.language,
         connectedUsers: session.connectedUsers.map(u => u.userId),
+        yjsState: session.yjsState ? session.yjsState.toString('base64') : null
       }
     });
 
@@ -191,6 +192,30 @@ router.get('/user/session', authenticateToken, async (req, res) => {
 
   } catch (err) {
     // 500 Internal Server Error
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// Get authenticated user's session history
+router.get('/user/history', authenticateToken, async (req, res) => {
+  try {
+    const { limit, offset, status } = req.query;
+    
+    const sessions = await sessionService.getUserSessionHistory(
+      req.userId,
+      { limit, offset, status }
+    );
+    
+    res.json({
+      success: true,
+      data: sessions,
+      count: sessions.length
+    });
+
+  } catch (err) {
     res.status(500).json({
       success: false,
       message: 'Internal server error'

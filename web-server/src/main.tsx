@@ -6,11 +6,11 @@ import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Profile from "./pages/Profile";
 import AdminDashboard from "./pages/AdminDashboard";
-import CollaborationDemo from "./pages/CollaborationDemo";
 import CollaborativeSession from "./pages/CollaborativeSession";
 import Layout from "./components/Layout";
 import AuthCallback from "./pages/AuthCallback";
 import ProtectedRoute from "./components/ProtectedRoute";
+import HistoryPage from "./pages/HistoryPage";
 import { MatchmakingProvider } from "./hooks/MatchmakingGlobal"; // Import the new provider
 import { useAuth } from "./hooks/useAuth"; // Assuming useAuth is available for userId
 
@@ -61,10 +61,10 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
               }
             />
             <Route
-              path="collaboration"
+              path="history"
               element={
                 <ProtectedRoute>
-                  <CollaborationDemo />
+                  <HistoryPage />
                 </ProtectedRoute>
               }
             />
@@ -74,6 +74,14 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
             element={
               <ProtectedRoute>
                 <CollaborativeSession />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="history/:sessionId"
+            element={
+              <ProtectedRoute>
+                <CollaborativeSession viewMode="viewer" />
               </ProtectedRoute>
             }
           />

@@ -30,7 +30,9 @@ export async function updateUserRole(
   try {
     const db = getDatabase();
     const Users = db.collection<User>("users");
-    const result = await Users.updateOne({ userId }, { $set: { role } });
+    const result = await Users.updateOne({ userId }, { 
+      $set: { role } 
+    });
     return result.modifiedCount > 0;
   } catch (error) {
     console.error("Error updating user role:", error);

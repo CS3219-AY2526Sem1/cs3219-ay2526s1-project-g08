@@ -135,7 +135,7 @@ async function handleMatchAccept(matchId: string, userId: string) {
       await redis.hset(matchId, { status: "declined" });
       return;
     }
-
+    
     // Store sessionId and update status
     await redis.hset(matchId, { status: "accepted", sessionId: sessionId });
 
