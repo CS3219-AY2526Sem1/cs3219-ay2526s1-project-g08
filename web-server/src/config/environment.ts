@@ -22,13 +22,13 @@ export const config = {
       ? "http://localhost:3002"
       : `${PROD_BASE_URL}/user`,
     questionService: isLocalDevelopment
-      ? "http://localhost:3003/questions"
+      ? "http://localhost:3003/questions/"
       : `${PROD_BASE_URL}/questions/`, // Trailing slash to match CloudFront /questions/* pattern
     matchingService: isLocalDevelopment
       ? "http://localhost:3001"
       : `${PROD_BASE_URL}/matching`, // Not used for HTTP, only WebSocket
     collaborationService: isLocalDevelopment
-      ? "http://localhost:3004/collaboration"
+      ? "http://localhost:3004/collaboration/"
       : `${PROD_BASE_URL}/collaboration/`, // Trailing slash to match CloudFront /collaboration/* pattern
   },
 
