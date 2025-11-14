@@ -45,11 +45,7 @@ function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
           description:
             "Welcome to your collaborative coding session! Unable to load question.",
           difficulty: "Null",
-<<<<<<< Updated upstream
           topics: []
-=======
-          topics: "Null",
->>>>>>> Stashed changes
         });
       }
     };
@@ -128,19 +124,10 @@ function CollaborativeEditor({ sessionId, authToken, language, questionId }) {
       <div className="editor-content">
         <div className="question-panel">
           <div className="question-header">
-<<<<<<< Updated upstream
             <div className="header-row">
               <h2>{questionData?.title || 'Loading...'}</h2>
               <span
                 className={`difficulty ${questionData?.difficulty?.toLowerCase() || ''}`}
-=======
-            <h2>{questionData?.title || "Loading..."}</h2>
-            <div className="question-meta">
-              <span
-                className={`difficulty ${
-                  questionData?.difficulty?.toLowerCase() || ""
-                }`}
->>>>>>> Stashed changes
               >
                 {questionData?.difficulty}
               </span>
