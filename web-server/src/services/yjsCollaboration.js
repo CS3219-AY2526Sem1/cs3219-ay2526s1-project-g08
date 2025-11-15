@@ -98,26 +98,6 @@ class YjsCollaboration {
         });
       }
     });
-
-    // Connection established
-    this.socket.on('connect', () => {
-      console.log('Socket.IO connected, requesting sync');
-      this.requestSync();
-    });
-
-    // Reconnection
-    this.socket.on('reconnect', () => {
-      console.log('Socket.IO reconnected, re-syncing');
-      this.synced = false;
-      this.requestSync();
-    });
-  }
-
-  requestSync() {
-    const stateVector = Y.encodeStateVector(this.ydoc);
-    this.socket.emit('yjs-sync-request', {
-      stateVector: stateVector
-    });
   }
   
   isSynced() {
