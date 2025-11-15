@@ -1,0 +1,208 @@
+name: Deploy to AWS ECS
+
+on:
+  workflow_run:
+    workflows: ["Continuous Integration"]
+    types:
+      - completed
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-southeast-1
+  ECS_CLUSTER: peerprep-cluster
+
+jobs:
+  deploy-services:
+    runs-on: ubuntu-latest
+    # Only run if CI workflow succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Build and push user-service
+      - name: Build and push user-service
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/user-service:$IMAGE_TAG ./user-service
+          docker tag $ECR_REGISTRY/user-service:$IMAGE_TAG $ECR_REGISTRY/user-service:latest
+          docker push $ECR_REGISTRY/user-service:$IMAGE_TAG
+          docker push $ECR_REGISTRY/user-service:latest
+
+      - name: Register user-service task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://.aws/task-definitions/user-service.json \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy user-service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service user-service \
+            --task-definition user-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      # Build and push question-service
+      - name: Build and push question-service
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/question-service:$IMAGE_TAG ./question-service
+          docker tag $ECR_REGISTRY/question-service:$IMAGE_TAG $ECR_REGISTRY/question-service:latest
+          docker push $ECR_REGISTRY/question-service:$IMAGE_TAG
+          docker push $ECR_REGISTRY/question-service:latest
+
+      - name: Register question-service task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://.aws/task-definitions/question-service.json \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy question-service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service question-service \
+            --task-definition question-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      # Build and push collaboration-service
+      - name: Build and push collaboration-service
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/collaboration-service:$IMAGE_TAG ./collaboration-service
+          docker tag $ECR_REGISTRY/collaboration-service:$IMAGE_TAG $ECR_REGISTRY/collaboration-service:latest
+          docker push $ECR_REGISTRY/collaboration-service:$IMAGE_TAG
+          docker push $ECR_REGISTRY/collaboration-service:latest
+
+      - name: Register collaboration-service task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://.aws/task-definitions/collaboration-service.json \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy collaboration-service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service collaboration-service \
+            --task-definition collaboration-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      # Build and push matching-service
+      - name: Build and push matching-service
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/matching-service:$IMAGE_TAG ./matching-service
+          docker tag $ECR_REGISTRY/matching-service:$IMAGE_TAG $ECR_REGISTRY/matching-service:latest
+          docker push $ECR_REGISTRY/matching-service:$IMAGE_TAG
+          docker push $ECR_REGISTRY/matching-service:latest
+
+      - name: Register matching-service task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://.aws/task-definitions/matching-service.json \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy matching-service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service matching-service \
+            --task-definition matching-service \
+            --force-new-deployment \
+            --region ${{ env.AWS_REGION }}
+
+      # Deploy web-server to S3 + CloudFront
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+          cache-dependency-path: web-server/package-lock.json
+
+      - name: Build web-server
+        working-directory: ./web-server
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to S3 - Static Assets
+        run: |
+          aws s3 sync web-server/dist s3://peerprep-frontend-prod \
+            --exclude "*.html" \
+            --cache-control "public,max-age=31536000,immutable" \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3 - HTML Files
+        run: |
+          aws s3 sync web-server/dist s3://peerprep-frontend-prod \
+            --exclude "*" \
+            --include "*.html" \
+            --cache-control "public,max-age=0,no-cache,no-store,must-revalidate" \
+            --region ${{ env.AWS_REGION }}
+
+      - name: Invalidate CloudFront Cache
+        run: |
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id E133O2GNMC57KP \
+            --paths "/*" \
+            --query 'Invalidation.Id' \
+            --output text)
+          echo "CloudFront invalidation created: $INVALIDATION_ID"
+          echo "Cache invalidation will take 2-3 minutes to complete"
+
+      # Wait for all services to stabilize
+      - name: Wait for services to stabilize
+        run: |
+          echo "⏳ Waiting for all services to stabilize..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services user-service question-service collaboration-service matching-service \
+            --region ${{ env.AWS_REGION }}
+          echo "✅ All services are stable!"
+
+      - name: Deployment summary
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "  ✅ Deployment Complete!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "Backend Services (ECS):"
+          aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services user-service question-service collaboration-service matching-service \
+            --region ${{ env.AWS_REGION }} \
+            --query 'services[*].[serviceName,desiredCount,runningCount,deployments[0].status]' \
+            --output table
+          echo ""
+          echo "Frontend (S3 + CloudFront):"
+          echo "  S3 Bucket: peerprep-frontend-prod"
+          echo "  CloudFront: https://dtdp1nnlnq3yh.cloudfront.net"
+          echo "  Status: Deployed ✅"
+          echo "  Note: Cache invalidation takes 2-3 minutes to propagate"
