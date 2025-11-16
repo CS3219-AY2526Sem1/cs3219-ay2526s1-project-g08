@@ -4,7 +4,7 @@
 ## Table of Contents
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Tech Stack](#tech-stackk)
+3. [Tech Stack](#tech-stack)
 4. [Installation](#installation)
 5. [Running Locally](#running-locally)
 6. [Environment Variables](#environment-variables)
@@ -31,13 +31,14 @@ This project was done by Group 08 - Xu Ziqi, Zhu Yicheng, Tan Zhi Heng, Swaminat
 
 ### Nice-to-have Features
 
-- Enhanced code editor: The Monaco editor includes featues like syntax highlighting, autocompletion with IntelliSense, code folding, and automatic indentation.
+- Enhanced code editor: The Monaco editor includes features like syntax highlighting, autocompletion with IntelliSense, code folding, and automatic indentation.
 - Collaboration history: Users can view the question and final state of the code editor for past collaborative sessions.
 - CI/CD with GitHub Actions
 - Deployment on AWS
 
 ## Architecture
 ![architecture](architecture.png)
+PeerPrep runs a React frontend (served via S3 + CloudFront) talking to an AWS Application Load Balancer, which routes to four Node.js microservices (user, matching, question, collaboration). MongoDB stores durable data (profiles, sessions, questions) and Redis powers the low-latency matching queue, while Socket.IO channels keep collaborators in sync.
 ## Tech-Stack 
 
 ### Frontend
@@ -66,7 +67,11 @@ This project was done by Group 08 - Xu Ziqi, Zhu Yicheng, Tan Zhi Heng, Swaminat
 1. Initialise Docker containers: `docker compose up --build`
 2. Change directory to web-server: `cd web-server`
 3. Run front-end of web server: `npm run start`
-3. Bring down containers: `docker compose down`
+4. Bring down containers: `docker compose down`
 
 ## Environment Configuration 
-`.env.local` file has been provided in the user-service folder and the `docker-compose.yml` defines the environment variables for the microservices.
+`.env.local` inside `user-service/` supplies GitHub OAuth credentials plus the JWT and MongoDB secrets needed for auth. `docker-compose.yml` wires the rest of the stack (MongoDB URIs per service, Redis URL, service ports, and frontend origins). Update these files—or override with ECS task definition secrets—before deploying to another environment.
+
+## AI Use Summary
+
+We used AI tooling only for simple tasks such as debugging small issues, writing boilerplate code, and polishing short documentation snippets. Architectural decisions, service boundaries, data models, and infrastructure setups were discussed and implemented manually by the team.
