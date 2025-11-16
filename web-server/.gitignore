@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+
+# Vite cache
+.vite/
+
+# UI template
+ui-template/

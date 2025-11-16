@@ -1,0 +1,145 @@
+import config from "../config/environment";
+
+const QUESTION_SERVICE_URL = config.api.questionService;
+
+export interface Question {
+  _id: string;
+  title: string;
+  description: string;
+  difficulty: "easy" | "medium" | "hard";
+  topics: string[];
+  createdAt: string;
+}
+
+export interface CreateQuestionData {
+  title: string;
+  description: string;
+  difficulty: "easy" | "medium" | "hard";
+  topics: string[];
+}
+
+export interface UpdateQuestionData {
+  description?: string;
+  difficulty?: "easy" | "medium" | "hard";
+  topics?: string[];
+  newTitle?: string;
+}
+
+export async function getAllQuestions(): Promise<Question[]> {
+  // QUESTION_SERVICE_URL already has trailing slash: /questions/
+  const response = await fetch(QUESTION_SERVICE_URL, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch questions");
+  }
+
+  return response.json();
+}
+
+export async function getAllTopics(): Promise<string[]> {
+  // Remove leading slash to avoid double slash: /questions/ + topics = /questions/topics
+  const response = await fetch(`${QUESTION_SERVICE_URL}topics`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch topics");
+  }
+
+  return response.json();
+}
+
+export async function getQuestionById(questionId: string): Promise<Question> {
+  // Remove leading slash to avoid double slash: /questions/ + {id} = /questions/{id}
+  const response = await fetch(`${QUESTION_SERVICE_URL}${questionId}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch question with ID: ${questionId}`);
+  }
+
+  return response.json();
+}
+
+export async function createQuestion(
+  data: CreateQuestionData
+): Promise<Question> {
+  const response = await fetch(QUESTION_SERVICE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    let errorMessage = "Failed to create question";
+    try {
+      const error = await response.json();
+      errorMessage = error.message || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use status text
+      errorMessage = `Failed to create question: ${response.status} ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+export async function updateQuestion(
+  questionId: string,
+  data: UpdateQuestionData
+): Promise<Question> {
+  console.log("Updating question:", { questionId, data });
+
+  // Remove leading slash to avoid double slash: /questions/ + {id} = /questions/{id}
+  const response = await fetch(`${QUESTION_SERVICE_URL}${questionId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    let errorMessage = "Failed to update question";
+    try {
+      const error = await response.json();
+      errorMessage = error.message || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use status text
+      errorMessage = `Failed to update question: ${response.status} ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
+export async function deleteQuestion(questionId: string): Promise<void> {
+  console.log("Deleting question:", questionId);
+
+  // Remove leading slash to avoid double slash: /questions/ + {id} = /questions/{id}
+  const response = await fetch(`${QUESTION_SERVICE_URL}${questionId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    let errorMessage = "Failed to delete question";
+    try {
+      const error = await response.json();
+      errorMessage = error.message || errorMessage;
+    } catch (e) {
+      // If response is not JSON, use status text
+      errorMessage = `Failed to delete question: ${response.status} ${response.statusText}`;
+    }
+    throw new Error(errorMessage);
+  }
+}

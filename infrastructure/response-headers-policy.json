@@ -1,0 +1,46 @@
+{
+  "Name": "AllowCookiesPolicy",
+  "Comment": "Allow Set-Cookie headers from origin to pass through CloudFront",
+  "CorsConfig": {
+    "AccessControlAllowOrigins": {
+      "Quantity": 1,
+      "Items": ["https://dtdp1nnlnq3yh.cloudfront.net"]
+    },
+    "AccessControlAllowHeaders": {
+      "Quantity": 6,
+      "Items": [
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "Cookie"
+      ]
+    },
+    "AccessControlAllowMethods": {
+      "Quantity": 7,
+      "Items": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"]
+    },
+    "AccessControlAllowCredentials": true,
+    "OriginOverride": false
+  },
+  "CustomHeadersConfig": {
+    "Quantity": 0
+  },
+  "SecurityHeadersConfig": {
+    "StrictTransportSecurity": {
+      "Override": false,
+      "IncludeSubdomains": true,
+      "AccessControlMaxAgeSec": 31536000
+    },
+    "ContentTypeOptions": {
+      "Override": false
+    }
+  },
+  "ServerTimingHeadersConfig": {
+    "Enabled": false
+  },
+  "RemoveHeadersConfig": {
+    "Quantity": 0
+  }
+}
