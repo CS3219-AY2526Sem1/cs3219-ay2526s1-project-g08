@@ -13,42 +13,45 @@
 
 ## Overview
 
-PeerPrep is a microservices-based web application designed to help students prepare for technical interviews through real-time peer matching, code collaboration, and topic-tagged question practice.
+PeerPrep is a microservices-based web application designed to help students prepare for technical interviews through peer matching, real-time code collaboration, and topic-tagged question practice.
 
 This project was done by Group 08 - Xu Ziqi, Zhu Yicheng, Tan Zhi Heng, Swaminathan Viswa, Subramanian Karthikeyan
 
 ### Core Features/Services: 
 
-User-Service (M1): The User Service provides user authentication and user-profile management. Users can register using their Github (as most developers would have), manage their profiles, and track their question attempt history. The service includes role-based access control with admin privileges for user management.
+- User-Service (M1): The User Service provides user authentication and user-profile management. Users can register using their Github account (which most developers would have). The service includes role-based access control with admin privileges for accessing the admin dashboard.
 
-Matching-Service (M2): The Matching Service implements a queue-based algorithm that pairs users based on selected difficulty level, coding language and topic. The system attempts and doing an exact-match for user based on chosen fators and also gives the option of accepting/declining a match based on the user they have been paried with. Users who have been declined on will be auto-added to the queue back and matched again, if other potential users present. 
+- Matching-Service (M2): The Matching Service implements a queue-based algorithm that pairs users based on selected difficulty level, coding language and topics. Users have the option of accepting/declining a match based on the user they have been paried with. Users who have been declined on will be auto-added to the queue back and matched again if possible. 
 
-Question-Service (M3): The Question Service provides a comprehensive database of technical interview questions organised by difficulty level (Easy, Medium, Hard) and topics (Array, String, Graph, etc.). Users can browse questions, filter by preferences, and access detailed problem descriptions with example test cases.
+- Question-Service (M3): The Question Service provides a comprehensive database of technical interview questions organised by difficulty level (Easy, Medium, Hard) and topics (Array, String, Graph, etc.). Only users with admin privileges can add, edit and delete questions in the admin dashbboard.
 
-Collaboration-Service (M4): The Collaboration Service enables real-time code editing with automatic synchronisation across clients using WebSocket connections. 
+- Collaboration-Service (M4): The Collaboration Service enables real-time code editing with automatic synchronisation across clients using `Socket.IO` for WebSocket connections and `Yjs` for conflict resolution. 
 
-User Interface: The frontend provides an intuitive React-based interface with Monaco Editor for code editing, question display, and user dashboard.
+- User Interface: The frontend provides an intuitive React-based interface with Monaco Editor as the code editor in the collaborative session.
 
 ### Nice-to-have Features
 
-
+- Enhanced code editor: The Monaco editor includes featues like syntax highlighting, autocompletion with IntelliSense, code folding, and automatic indentation.
+- Collaboration history: Users can view the question and final state of the code editor for past collaborative sessions.
+- CI/CD with GitHub Actions
+- Deployment on AWS
 
 ## Architecture
-
+![architecture](architecture.png)
 ## Tech-Stack 
 
-### FRONTEND
+### Frontend
 - React + TypeScript
 - MUI Component Library 
 - Vite (bundler)
 
-### BACKEND
+### Backend
 - Node.js + Express (Core Framework)
 - MongoDB (primary database)
 - Redis (matchmaking queue handler)
 - Yjs (CRDT for collaborative editing)
 
-### DEV-OPS & DEPLOYMENT 
+### DevOps & Deployment 
 - Docker (service containerization)
 - AWS ECS (Elastic Container Service) — microservice orchestration
 - AWS ECR (container registry)
@@ -58,10 +61,6 @@ User Interface: The frontend provides an intuitive React-based interface with Mo
 - AWS Secrets Manager — credential storage
 - GitHub Actions (CI/CD pipeline)
 
-## Installation
-
-Install React: `npm run install`
-
 ## Running Locally 
 
 1. Initialise Docker containers: `docker compose up --build`
@@ -70,6 +69,4 @@ Install React: `npm run install`
 3. Bring down containers: `docker compose down`
 
 ## Environment Configuration 
-
-## AI Use Summary 
-
+`.env.local` file has been provided in the user-service folder and the `docker-compose.yml` defines the environment variables for the microservices.
