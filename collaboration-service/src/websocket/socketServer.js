@@ -87,7 +87,7 @@ class SocketServer {
 
       try {
         // Updates backend session state
-        const session = await sessionService.joinSession(
+        await sessionService.joinSession(
           socket.sessionId,
           socket.userId
         );
@@ -99,7 +99,7 @@ class SocketServer {
         // Ensure Yjs document is loaded in memory
         await yjsDocumentManager.getDocument(socket.sessionId);
 
-        // 🚨 CRITICAL: Send initial Yjs state immediately on connection
+        // CRITICAL: Send initial Yjs state immediately on connection
         // This prevents race conditions where client requests sync before doc is ready
         const initialUpdate = await yjsDocumentManager.getStateAsUpdate(socket.sessionId);
         socket.emit("yjs-sync-response", {
@@ -107,7 +107,7 @@ class SocketServer {
         });
         logger.debug(`Sent initial Yjs sync to user ${socket.userId} in session ${socket.sessionId}`);
 
-        // 🚨 FIX: Refresh session to get current connectedUsers after all setup
+        // FIX: Refresh session to get current connectedUsers after all setup
         const currentSession = await sessionService.getSession(socket.sessionId);
         const connectedUsers = currentSession.connectedUsers.map((u) => u.userId);
 
@@ -176,32 +176,6 @@ class SocketServer {
   }
 
   setupYjsHandlers(socket) {
-    // Handle sync request from client (initial connection)
-    socket.on("yjs-sync-request", async (data) => {
-      try {
-        const { stateVector } = data;
-        const { sessionId } = socket;
-
-        // Get state as update
-        const update = await yjsDocumentManager.getStateAsUpdate(
-          sessionId,
-          stateVector ? Array.from(stateVector) : null
-        );
-
-        // Send sync response
-        socket.emit("yjs-sync-response", {
-          update: Array.from(update),
-        });
-
-        logger.debug(
-          `Sent Yjs sync to user ${socket.userId} in session ${sessionId}`
-        );
-      } catch (error) {
-        logger.error("Yjs sync error:", error);
-        socket.emit("error", { message: "Failed to sync document" });
-      }
-    });
-
     // Handle Yjs updates from clients
     socket.on("yjs-update", async (data) => {
       try {
