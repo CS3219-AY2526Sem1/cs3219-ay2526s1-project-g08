@@ -1,0 +1,20 @@
+{
+  "Name": "MinimalCachingWithCookies",
+  "Comment": "Minimal caching (1 second) with cookie forwarding for authenticated APIs",
+  "DefaultTTL": 1,
+  "MaxTTL": 1,
+  "MinTTL": 1,
+  "ParametersInCacheKeyAndForwardedToOrigin": {
+    "EnableAcceptEncodingGzip": false,
+    "EnableAcceptEncodingBrotli": false,
+    "HeadersConfig": {
+      "HeaderBehavior": "none"
+    },
+    "CookiesConfig": {
+      "CookieBehavior": "all"
+    },
+    "QueryStringsConfig": {
+      "QueryStringBehavior": "all"
+    }
+  }
+}
